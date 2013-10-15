@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Notificare WebSockets</title>
+<script src="libs/jquery/jquery.min.js"></script>
+<script src="libs/shared/ua-parser.min.js"></script>
+<script src="libs/shared/base64.js"></script>
+<script src="libs/jquery/notificare.jquery.js"></script>
+</head>
+<body>
+<script>
+$(document).ready(function() {
+
+	$('body').notificare({
+		appName: 'Notificare',
+		keys: {
+			development: {
+				applicationKey: '8a28d2f74511ade9913ebf23d5259aa7c7e654952bc0e136ca16902f8cfbf978',
+				applicationSecret: '1d39ad0c971411ccf87874d3ee0cd4bdcd1754721488548f70c2a35ee69f5d05'				
+			},
+			production: {
+				applicationKey: '9fd647431c4dc3798f2a5ae147411a787e8d52447e365d7972ec4d853b4cdd65',
+				applicationSecret: '6540b4a9a0c82c16be18da73e074e271f9cf4313312c8b1751f662eac55e74e6'			
+			}
+		},
+		nativeNotifications: false,
+		development: true,
+		appVersion: '1.0',
+		userID: 'jjonthemix',
+		username: 'jjonthemix'
+	});
+
+	
+	$("body").bind("notificare:willOpenNotification", function(event, data) {
+		console.log(event, data);
+	});
+	
+	$("body").bind("notificare:didOpenNotification", function(event, data) {
+		console.log(event, data);
+	});
+	
+	$("body").bind("notificare:didFailToOpenNotification", function(event, data) {
+		console.log(event, data);
+	});
+	
+	
+	$("body").bind("notificare:didConnectToWebSocket", function(event) {
+		console.log(event);
+	});
+	
+	$("body").bind("notificare:didRegisterWebSocket", function(event, data) {
+		console.log(event,data);
+	});
+	
+	$("body").bind("notificare:didGetErrorWebSocket", function(event) {
+		console.log(event);
+	});
+	
+	$("body").bind("notificare:didCloseWebSocket", function(event) {
+		console.log(event);
+	});
+	
+});
+</script>
+</body>
+</html>
