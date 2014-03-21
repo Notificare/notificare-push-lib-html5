@@ -41,8 +41,8 @@ app.configure('development', function() {
 		host: process.env.PUSH_API_HOST || 'localhost:3333'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || '1a76f1518a4b7f09548889c926fddc42a05ecd7bb5e60f494635e8839dbfd952',
-		secret: process.env.NOTIFICARE_SECRET || 'c00aae19e159dfd48b76d2c072d094e28ce0215920b76f45a4d72375309ae5d3',
+		key: process.env.NOTIFICARE_KEY || 'xxx',
+		secret: process.env.NOTIFICARE_SECRET || 'xxx',
 	});
 });
 
@@ -54,8 +54,8 @@ app.configure('production', function() {
 		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || '1a76f1518a4b7f09548889c926fddc42a05ecd7bb5e60f494635e8839dbfd952',
-		secret: process.env.NOTIFICARE_SECRET || 'c00aae19e159dfd48b76d2c072d094e28ce0215920b76f45a4d72375309ae5d3',
+		key: process.env.NOTIFICARE_KEY || 'xxx',
+		secret: process.env.NOTIFICARE_SECRET || 'xxx',
 	});
 
 });
