@@ -1,0 +1,26 @@
+// Mixins
+@mixin data-uri-bg($image, $properties: false) {
+	@if $properties != false {
+		background: inline-image($image) $properties;
+		*background: url($image) $properties;
+	} @else {
+		background: inline-image($image);
+		*background: url($image);
+	}
+}
+
+@mixin retina-image($image, $imgwidth, $imgheight, $properties: false) {
+	background: url(/images/#{$image}.png) $properties;
+
+	@media only screen and (-webkit-device-pixel-ratio: 2) {
+		background: url(/images/#{$image}_2x.png) $properties;
+		background-size: $imgwidth $imgheight
+	}
+}
+
+
+// Fuctions
+@function emCalc($desired_size, $parent_size:$default-font-size) {
+	@return $desired_size / $parent_size + 0em;
+}
+

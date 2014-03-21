@@ -1,0 +1,101 @@
+// Icons
+@mixin icon($icon, $position:"before") {
+	@if $position == "before" {
+		@if $legacy-support-for-ie == true {
+			.lt-ie8 & {
+			 	zoom: expression(
+			 		this.runtimeStyle.zoom="1",
+			 		i = document.createElement("i"),
+			 		i.className="ie-icon",
+			 		this.insertBefore(i, this.firstChild)
+			 		);
+			}
+		}
+		//.lt-ie8 & .ie-icon,
+		&:before {
+			@extend %#{$icon};
+			@extend %icon;
+			@content;
+		}
+	}
+	@elseif $position == "after" {
+		@if $legacy-support-for-ie == true {
+			.lt-ie8 & {
+			 	zoom: expression(
+			 		this.runtimeStyle.zoom="1",
+			 		i = document.createElement("i"),
+			 		i.className="ie-icon",
+			 		this.appendChild(i)
+			 		);
+			}
+		}
+		//.lt-ie8 & .ie-icon,
+		&:after {
+			@extend %#{$icon};
+			@extend %icon;
+			@content;
+		}
+	}
+}
+
+@font-face {
+	font-family: 'Notificare';
+	src:url('../fonts/Notificare.eot');
+	src:url('../fonts/Notificare.eot?#iefix') format('embedded-opentype'),
+		url('../fonts/Notificare.woff') format('woff'),
+		url('../fonts/Notificare.ttf') format('truetype'),
+		url('../fonts/Notificare.svg#Notificare') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+%icon {
+	font-family: 'Notificare';
+	font-style: normal;
+	speak: none;
+	font-weight: normal;
+	line-height: 1;
+	-webkit-font-smoothing: antialiased;
+	content: "";
+}
+
+%i-vimeo { content: "\e000"; }
+%i-twitter { content: "\e001"; }
+%i-rss { content: "\e002"; }
+%i-facebook { content: "\e003"; }
+%i-linkedin { content: "\e004"; }
+%i-googleplus { content: "\e005"; }
+%i-youtube { content: "\e006"; }
+
+%i-WP8 { content: "\e007"; }
+%i-Windows { content: "\e007"; }
+%i-star { content: "\e008"; }
+%i-map { content: "\e009"; }
+%i-images { content: "\e00a"; }
+%i-Websockets { content: "\e00b"; }
+%i-Web { content: "\e00b"; }
+%i-BlackBerry { content: "\e00c"; }
+%i-compass { content: "\e00d"; }
+%i-iOS { content: "\e00e"; }
+%i-Mac { content: "\e00e"; }
+%i-Android { content: "\e00f"; }
+%i-alert { content: "\e010"; }
+%i-arrow-right, %i-next{ content: "\e01b"; }  // Arrow right
+%i-arrow-down { content: "\e020"; }
+%i-arrow-left, %i-prev { content: "\e01f"; }
+%i-arrow-up { content: "\e021"; }
+%i-big-arrow-right, %i-big-next{ content: "\e017"; }  // Arrow right
+%i-big-arrow-down { content: "\e023"; }
+%i-big-arrow-left, %i-big-prev { content: "\e022"; }
+%i-big-arrow-up { content: "\e024"; }
+%i-bold-arrow-right, %i-bold-next{ content: "\e01a"; }  // Arrow right
+%i-bold-arrow-down { content: "\e01d"; }
+%i-bold-arrow-left, %i-bold-prev { content: "\e01c"; }
+%i-bold-arrow-up { content: "\e01e"; }
+
+%i-p-broadcast { content: "\f0c0"; }
+%i-p-users { content: "\f007"; }
+%i-p-devices { content: "\e019"; }
+%i-p-location { content: "\f0ac"; }
+%i-p-tags { content: "\e015"; }
+%i-p-segments { content: "\e016"; }

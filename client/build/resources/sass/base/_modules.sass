@@ -1,0 +1,83 @@
+// Modules - Reusable chunks
+%default-font-family
+	font-family: $font-family
+%default-font-size
+	font-size: emCalc($default-font-size,16px)
+%default-line-size
+	line-height: emCalc($default-line-height)
+
+%default-font-styling
+	@extend %default-font-family
+	@extend %default-font-size
+	@extend %default-line-size
+	font-weight: 300
+
+%clear-list
+	padding: 0
+	margin: 0
+	list-style: none
+
+%circle-shape
+	+border-radius(50%)
+	display: inline-block
+	text-align: center
+	overflow: hidden
+
+%circle-box
+	@extend %circle-shape
+	//width: emCalc(40px, 24px)
+	//height: emCalc(40px, 24px)
+	//font-size: emCalc(24px)
+	//line-height: emCalc(40px, 24px)
+	color: #fff !important
+	background: $font-color
+
+%clearfix
+	&:before,	&:after
+		content: " "
+		display: table
+	&:after
+		clear: both
+	@if $legacy-support-for-ie == false
+		zoom: 1
+
+%fleximage
+	max-width: 100%
+	width: 100%
+	height: auto
+
+%dl-basic
+	@extend %clearfix
+	dt, dd
+		margin-bottom: 10px
+	dt
+		float: left
+		clear: left
+		font-weight: bold
+	dd
+		float: left
+		margin: 0
+
+// Button styling
+%btn-styling
+	display: inline-block
+	padding: 5px 15px
+	color: #fff
+	font-weight: 200
+	text-decoration: none
+
+
+/* Foresight */
+.fs-img
+	font-family: 'image-set( url({src}) 1x, url({directory}{filename}_2x.{ext}) 2x)'
+	display: none
+
+%icon-bg
+	@extend %circle-shape
+	width: emCalc(35px)
+	height: emCalc(35px)
+	text-align: center
+	margin-bottom: emCalc(5px)
+	line-height: emCalc(52px)
+	display: inline-block
+	background: #fff
