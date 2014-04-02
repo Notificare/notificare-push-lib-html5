@@ -1,4 +1,4 @@
-// # Notificare JS SDK
+// # Notificare Push Library for WebSockets
 // ## Main Node file
 // Set the following environment variables to use:
 //
@@ -7,14 +7,12 @@
 
 // ## Imports
 var express = require('express'),
-	API = require('./server/resources/api'),
-	connectRedis = require('connect-redis');
+	API = require('./server/resources/api');
 
 require('express-namespace');
 
 //Create an ExpressJS app
 var app = express();
-//var RedisStore = connectRedis(express);
 
 // default configuration
 app.configure(function(){
@@ -36,13 +34,14 @@ app.configure(function(){
 
 // local environment configuration
 app.configure('development', function() {
+	app.enable('trust proxy');
 	app.set('push', {
-		protocol: process.env.PUSH_API_PROTOCOL || 'http',
-		host: process.env.PUSH_API_HOST || 'localhost:3333'
+		protocol: 'https',
+		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
 		key: process.env.NOTIFICARE_KEY || 'xxx',
-		secret: process.env.NOTIFICARE_SECRET || 'xxx',
+		secret: process.env.NOTIFICARE_SECRET || 'xx',
 	});
 });
 
