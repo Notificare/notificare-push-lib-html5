@@ -8,14 +8,14 @@ MyApp.ApplicationController = Ember.Controller.extend({
 	config:{
 		name: 'My App',
 		version: '1.0',
-		sdk: '1.0-RC1',
+		sdk: '1.0-RC3',
 		api: "/api",
 		wss: "wss://websocket.notifica.re",
 		protocols: ['notificare-push'],
 		daysToExpire: '30',
 		clientInfo: new UAParser(),
 		native: true,
-		debug: true,
+		debug: false,
 		minReconnectTimeout: 1000,
 		maxReconnectTimeout: 60000
 	},
