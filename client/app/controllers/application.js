@@ -15,15 +15,16 @@ MyApp.ApplicationController = Ember.Controller.extend({
 		daysToExpire: '30',
 		clientInfo: new UAParser(),
 		native: true,
-		debug: false
+		debug: true,
+		minReconnectTimeout: 1000,
+		maxReconnectTimeout: 60000
 	},
-	start: function(){
-
-		if(this.config.native){
+	reconnectTimeout: 0,
+	start: function() {
+		if (this.config.native) {
 			if (window.webkitNotifications) {
 				this.debug('Notificare: Native notifications are supported');
-				
-				 if (window.webkitNotifications.checkPermission() == 0) {
+				if (window.webkitNotifications.checkPermission() == 0) {
 					this.debug('Notificare: Open Connection');
 					this.openConnection();
 					this.set('uniqueId', this.getUniqueId());
@@ -32,34 +33,28 @@ MyApp.ApplicationController = Ember.Controller.extend({
 					    sessionID: this.uniqueId,
 					    type: 're.notifica.event.application.Open'
 					});
-				}else{
+				} else {
 					this.debug('Notificare: Show Modal');
 					$('#modal-simple-auth').modal('show');
-					var _this = this;
 					$('#accept-notifications').click(function(e) {
-						_this.debug('Notificare: Accept Native?');
+						this.debug('Notificare: Accept Native?');
 						e.preventDefault();
-						window.webkitNotifications.requestPermission(function(e){
-							_this.debug('Notificare: Accepted');
-							_this.openConnection();
-							_this.set('uniqueId', _this.getUniqueId());
-							_this.set('timestamp', new Date());
-							_this.log({
+						window.webkitNotifications.requestPermission(function(e) {
+							this.debug('Notificare: Accepted');
+							this.openConnection();
+							this.set('uniqueId', this.getUniqueId());
+							this.set('timestamp', new Date());
+							this.log({
 							    sessionID: this.uniqueId,
 							    type: 're.notifica.event.application.Open'
 							});
-							
-						});
-
-					});
+						}.bind(this));
+					}.bind(this));
 				}
-
-				 
-			}else {
+			} else {
 				this.debug('Notificare: Native notifications are not supported');
-				
 			}						
-		}else{
+		} else {
 			this.openConnection();
 			this.set('uniqueId', this.getUniqueId());
 			this.set('timestamp', new Date());
@@ -69,7 +64,7 @@ MyApp.ApplicationController = Ember.Controller.extend({
 			});
 		}
 
-		$(window).unload(function () {
+		$(window).unload(function() {
 			var d = new Date(), 
 			end = d.getTime(), 
 			start = d.getTime(), 
@@ -84,73 +79,86 @@ MyApp.ApplicationController = Ember.Controller.extend({
 		}.bind(this));
 		
 	},
-	
-	openConnection: function(){
-		var _this = this;
+	reconnect: function() {
+		this.reconnectTimeout = this.reconnectTimeout * 2;
+		if (this.reconnectTimeout < this.config.minReconnectTimeout) {
+			this.reconnectTimeout = this.config.minReconnectTimeout;
+		} else if (this.reconnectTimeout > this.config.maxReconnectTimeout) {
+			this.reconnectTimeout = this.config.maxReconnectTimeout;
+		}
+		this.debug('Reconnection in ' + this.reconnectTimeout + ' milliseconds');
+		setTimeout(function() {
+			this.start();
+		}.bind(this), this.reconnectTimeout);
+	},
+	openConnection: function() {
 		var d = new Date();
 		
-		if ("WebSocket" in window){
-
-			var connection = new WebSocket( this.config.wss, this.config.protocols );
-			
+		if ("WebSocket" in window) {
+			var connection = new WebSocket(this.config.wss, this.config.protocols);
 			//On OPEN
-			connection.onopen = function () {
-				_this.debug('Notificare: On Open');
-				if(_this.getCookie('uuid')){
-					connection.send(JSON.stringify({"command":"register", "uuid" : _this.getCookie('uuid')}));
-					_this.setCookie('uuid', _this.getCookie('uuid'));
-					_this.set('deviceId', _this.getCookie('uuid'));
-					_this.debug('Notificare: returning browser');
-				}else{
-					connection.send(JSON.stringify({"command":"register"}));
-					_this.log({
+			connection.onopen = function() {
+				this.debug('Notificare: On Open');
+				this.reconnectTimeout = 0;
+				if (this.getCookie('uuid')) {
+					connection.send(JSON.stringify({
+						command: "register", 
+						uuid: this.getCookie('uuid')
+					}));
+					this.setCookie('uuid', this.getCookie('uuid'));
+					this.set('deviceId', this.getCookie('uuid'));
+					this.debug('Notificare: returning browser');
+				} else {
+					connection.send(JSON.stringify({
+						command: "register"
+					}));
+					this.log({
 						sessionID: this.uniqueId,
 						type: 're.notifica.event.application.Install'
 					});
-					_this.debug('Notificare: new browser');
+					this.debug('Notificare: new browser');
 				}
-				
-			}
+			}.bind(this);
 			
 			//On MESSAGE
-			connection.onmessage = function (message) {
-				_this.debug('Notificare: on Message');
+			connection.onmessage = function(message) {
+				this.debug('Notificare: on Message');
 				if (message.data) {
 					var data = JSON.parse(message.data);
 					if (data.registration) {
-						_this.registerDevice({
+						this.registerDevice({
 							deviceID : data.registration.uuid,
 							userID : null,
 							userName : null,
-							platform : _this.config.clientInfo.getOS().name,
-							osVersion : _this.config.clientInfo.getOS().version,
-							sdkVersion : _this.config.sdk,
-							appVersion : _this.config.version,
+							platform : this.config.clientInfo.getOS().name,
+							osVersion : this.config.clientInfo.getOS().version,
+							sdkVersion : this.config.sdk,
+							appVersion : this.config.version,
 							deviceString : window.navigator.platform, //to get better
 							transport : 'Websocket',
 							timeZoneOffset : (d.getTimezoneOffset()/60) * -1
 						});
-						_this.setCookie('uuid', data.registration.uuid);
-						_this.set('deviceId', data.registration.uuid);
-						_this.debug('Notificare: Register Device' + data);
+						this.setCookie('uuid', data.registration.uuid);
+						this.set('deviceId', data.registration.uuid);
+						this.debug('Notificare: Register Device' + data);
 					} else if (data.notification) {
-						_this.getNotification(data.notification);
-						_this.debug('Notificare: got Notification' + data);
+						this.getNotification(data.notification);
+						this.debug('Notificare: got Notification' + data);
 					}
 				}
-			}
+			}.bind(this);
 			
 			//On ERROR
-			connection.onerror = function (e) {
-				_this.onError(e);
-			};
+			connection.onerror = function(e) {
+				this.onError(e);
+			}.bind(this);
 				
 			//On CLOSE
-			connection.onclose = function (e) {
-				_this.onClose(e);
-			};
+			connection.onclose = function(e) {
+				this.onClose(e);
+			}.bind(this);
 			
-		}else{
+		} else {
 
 		}
 	},
@@ -198,22 +206,21 @@ MyApp.ApplicationController = Ember.Controller.extend({
 
 		if(this.config.native){
 			this.notification = window.webkitNotifications.createNotification('/favicon.ico', this.config.name, msg.message);
-			var _this = this;
 			this.notification.ondisplay = function() {
-				_this.log({
-				    sessionID: _this.uniqueId,
+				this.log({
+				    sessionID: this.uniqueId,
 				    type: 're.notifica.event.notification.Open',
 				    notification: msg._id,
-				    userID: _this.userId,
-				    deviceID: _this.deviceId
+				    userID: this.userId,
+				    deviceID: this.deviceId
 				});
-			};
+			}.bind(this);
 			this.notification.onclose = function() {
 				
-			};
+			}.bind(this);
 			this.notification.onclick = function() {
 				
-			};
+			}.bind(this);
 			this.notification.show();						
 		} else {
 			this.set('notification', msg);
@@ -342,12 +349,12 @@ MyApp.ApplicationController = Ember.Controller.extend({
 	
 	onError: function(e){
 		this.debug('Notificare: Error connecting to Websockets' + e);
-		this.start();
+		this.reconnect();
 	},
 	
 	onClose: function(e){
 		this.debug('Notificare: Connection to Websockets closed' + e);
-		this.start();
+		this.reconnect();
 	},
 	
 	debug: function(m){
