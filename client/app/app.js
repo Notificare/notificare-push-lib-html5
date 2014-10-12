@@ -60,7 +60,6 @@ if (window.TESTING) {
  * controllers wrapped objects.
 */
 require('app/controllers/application');
-require('app/controllers/home');
 
 
 /* 
@@ -70,3 +69,4 @@ require('app/controllers/home');
  * actions.
 */
 require('app/routes/router');
+

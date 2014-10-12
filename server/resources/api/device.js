@@ -19,7 +19,8 @@ DeviceResource.prototype = {
 			app.get('/', this.routes.index.bind(this));
 			app.post('/', this.routes.create.bind(this));
 			app.put('/:id', this.routes.update.bind(this));
-			app.put('/:id/cleartags', this.routes.clearTags.bind(this));
+            app.get('/:id/tags', this.routes.index.bind(this));
+            app.put('/:id/cleartags', this.routes.clearTags.bind(this));
 			app.put('/:id/removetag', this.routes.removeTag.bind(this));
 			app.put('/:id/addtags', this.routes.addTags.bind(this));
 		}.bind(this);
@@ -29,10 +30,10 @@ DeviceResource.prototype = {
 		index: function(request, response, next) {
 			this.adapter.get('/device/:id/tags', {
 				id: request.params.id
-			}, null, null, {
+			}, null, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {
@@ -49,7 +50,7 @@ DeviceResource.prototype = {
 			this.adapter.post('/device', null, null, request.body, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {
@@ -87,7 +88,7 @@ DeviceResource.prototype = {
 			}, null, request.body, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {
@@ -106,7 +107,7 @@ DeviceResource.prototype = {
 			}, null, request.body, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {
@@ -125,7 +126,7 @@ DeviceResource.prototype = {
 			}, null, request.body, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {
@@ -144,7 +145,7 @@ DeviceResource.prototype = {
 			}, null, {
 				auth: {
 					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret,
+					password: this.app.set('notificare').secret
 				}
 			}, function(err, clientResponse, body) {
 				if (err) {

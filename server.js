@@ -40,8 +40,8 @@ app.configure('development', function() {
 		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || 'xxx',
-		secret: process.env.NOTIFICARE_SECRET || 'xx',
+		key: process.env.NOTIFICARE_KEY || '',
+		secret: process.env.NOTIFICARE_SECRET || ''
 	});
 });
 
@@ -53,8 +53,8 @@ app.configure('production', function() {
 		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || 'xxx',
-		secret: process.env.NOTIFICARE_SECRET || 'xxx',
+		key: process.env.NOTIFICARE_KEY || '',
+		secret: process.env.NOTIFICARE_SECRET || ''
 	});
 
 });
