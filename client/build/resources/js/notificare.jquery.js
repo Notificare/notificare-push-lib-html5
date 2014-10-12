@@ -39,6 +39,9 @@
             this.placeholder.addClass('notificare');
             this.uniqueId = this.getUniqueID();
             this.sessionDate = new Date();
+            this.reconnectTimeout = 0;
+            this.minReconnectTimeout = 1000;
+            this.maxReconnectTimeout = 60000;
 
             var _this = this;
 
@@ -186,6 +189,23 @@
         /**
          *
          */
+        reconnect: function() {
+            this.reconnectTimeout = this.reconnectTimeout * 2;
+            if (this.reconnectTimeout < this.minReconnectTimeout) {
+                this.reconnectTimeout = this.minReconnectTimeout;
+            } else if (this.reconnectTimeout > this.maxReconnectTimeout) {
+                this.reconnectTimeout = this.maxReconnectTimeout;
+            }
+            this.log('Reconnection in ' + this.reconnectTimeout + ' milliseconds');
+
+            var _this = this;
+            setTimeout(function() {
+                _this.setSocket();
+            }, this.reconnectTimeout);
+        },
+        /**
+         *
+         */
         setSocket: function () {
 
             var _this = this;
@@ -225,7 +245,7 @@
 
                 //On ERROR
                 connection.onerror = function (e) {
-                    $(_this.element).trigger("notificare:didGetErrorWebSocket");
+                    $(_this.element).trigger("notificare:didGetWebSocketError");
                 };
 
                 //On CLOSE
