@@ -3,7 +3,8 @@
  * @author Joris Verbogt <joris@notifica.re>
  * @author Joel Oliveira <joel@notifica.re>
  */
-var NotificationResource = require('./notification'),
+var express = require('express'),
+	NotificationResource = require('./notification'),
 	DeviceResource = require('./device'),
 	EventResource = require('./event'),
 	ReplyResource = require('./reply');
@@ -21,11 +22,10 @@ API.prototype = {
 			protocol: app.set('push').protocol,
 			host: app.set('push').host
 		});
-		return function() {
-			app.namespace('/notifications', new NotificationResource().attach(app));
-			app.namespace('/devices', new DeviceResource().attach(app));
-			app.namespace('/events', new EventResource().attach(app));
-			app.namespace('/replies', new ReplyResource().attach(app));
-		}.bind(this);
+		return express.Router()
+			.use('/notifications', new NotificationResource().attach(app))
+			.use('/devices', new DeviceResource().attach(app))
+			.use('/events', new EventResource().attach(app))
+			.use('/replies', new ReplyResource().attach(app));
 	}
 };

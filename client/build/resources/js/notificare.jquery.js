@@ -298,7 +298,6 @@
                 type: "GET",
                 url: this.options.apiUrl + '/notifications/' + notification.id
             }).done(function( msg ) {
-                _this.showNotification( msg );
                 $(_this.element).trigger("notificare:willOpenNotification", notification.id);
                 _this.showNotification(msg);
             }).fail(function( msg ) {

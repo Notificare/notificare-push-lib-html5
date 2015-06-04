@@ -5,7 +5,9 @@
  *	@version 0.1
  */
 
-var NotificarePush = require('../../libs/notificare/push');
+var express = require('express'),
+	NotificarePush = require('../../libs/notificare/push');
+
 module.exports = DeviceResource = function() {};
 
 DeviceResource.prototype = {
@@ -15,15 +17,14 @@ DeviceResource.prototype = {
 			protocol: app.set('push').protocol,
 			host: app.set('push').host
 		});
-		return function() {
-			app.get('/', this.routes.index.bind(this));
-			app.post('/', this.routes.create.bind(this));
-			app.put('/:id', this.routes.update.bind(this));
-            app.get('/:id/tags', this.routes.index.bind(this));
-            app.put('/:id/cleartags', this.routes.clearTags.bind(this));
-			app.put('/:id/removetag', this.routes.removeTag.bind(this));
-			app.put('/:id/addtags', this.routes.addTags.bind(this));
-		}.bind(this);
+		return express.Router()
+			.get('/', this.routes.index.bind(this))
+			.post('/', this.routes.create.bind(this))
+			.put('/:id', this.routes.update.bind(this))
+			.get('/:id/tags', this.routes.index.bind(this))
+			.put('/:id/cleartags', this.routes.clearTags.bind(this))
+			.put('/:id/removetag', this.routes.removeTag.bind(this))
+			.put('/:id/addtags', this.routes.addTags.bind(this));
 	},
 	
 	routes: {

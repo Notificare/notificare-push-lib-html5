@@ -5,7 +5,8 @@
  *	@version 0.1
  */
 
-var async = require('async'),
+var express = require('express'),
+	async = require('async'),
 	NotificarePush = require('../../libs/notificare/push');
 
 module.exports = NotificationResource = function() {};
@@ -17,9 +18,8 @@ NotificationResource.prototype = {
 			protocol: app.set('push').protocol,
 			host: app.set('push').host
 		});
-		return function() {
-			app.get('/:id', this.routes.show.bind(this));
-		}.bind(this);
+		return express.Router()
+			.get('/:id', this.routes.show.bind(this));
 	},
 	routes: {
 		show: function(request, response, next){

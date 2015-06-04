@@ -5,7 +5,9 @@
  *	@version 0.1
  */
 
-var NotificarePush = require('../../libs/notificare/push');
+var express = require('express'),
+	NotificarePush = require('../../libs/notificare/push');
+
 module.exports = EventResource = function() {};
 
 EventResource.prototype = {
@@ -15,9 +17,8 @@ EventResource.prototype = {
 			protocol: app.set('push').protocol,
 			host: app.set('push').host
 		});
-		return function() {
-			app.post('/', this.routes.create.bind(this));
-		}.bind(this);
+		return express.Router()
+			.post('/', this.routes.create.bind(this));
 	},
 	
 	routes: {

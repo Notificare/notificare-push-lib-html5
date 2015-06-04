@@ -7,33 +7,17 @@
 
 // ## Imports
 var express = require('express'),
+	cookieParser = require('cookie-parser'),
+	bodyParser = require('body-parser'),
+	morgan = require('morgan'),
 	API = require('./server/resources/api');
-
-require('express-namespace');
 
 //Create an ExpressJS app
 var app = express();
 
-// default configuration
-app.configure(function(){
-	// Language handler
-	app.use(express.logger(':remote-addr - - [:date] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
-	app.use(express.cookieParser());
-	app.use(express.bodyParser());
-	app.use(express.static(__dirname + '/client/build'));
-	app.use(function(req, res, next) {
-		req.language = req.acceptedLanguages[0] || 'en';
-		next();
-	});
-	// Generic error handler
-	app.use(function(err, request, response, next) {
-		console.log('%s [ERROR] %s', Date(), err.message);
-		response.send(500, {error: 'Fail whale'});
-	});
-});
 
-// local environment configuration
-app.configure('development', function() {
+var env = process.env.NODE_ENV || 'development';
+if ('development' == env) {
 	app.enable('trust proxy');
 	app.set('push', {
 		protocol: 'https',
@@ -43,10 +27,7 @@ app.configure('development', function() {
 		key: process.env.NOTIFICARE_KEY || '',
 		secret: process.env.NOTIFICARE_SECRET || ''
 	});
-});
-
-// production environment configuration
-app.configure('production', function() {
+} else {
 	app.enable('trust proxy');
 	app.set('push', {
 		protocol: 'https',
@@ -56,12 +37,31 @@ app.configure('production', function() {
 		key: process.env.NOTIFICARE_KEY || '',
 		secret: process.env.NOTIFICARE_SECRET || ''
 	});
+}
 
+// Middleware
+app.use(morgan(':remote-addr - - [:date] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+app.use(express.static(__dirname + '/client/build'));
+app.use(function(req, res, next) {
+	req.language = req.acceptsLanguages[0] || 'en';
+	next();
 });
-
 
 // Map routes to resource namespaces, pass along the Express app instance
-app.namespace('/api', new API().attach(app));
+app.use('/api', new API().attach(app));
+
+//Generic error handler
+app.use(function(err, request, response, next) {
+	console.log('%s [ERROR] %s', Date(), err.message);
+	if (err.status && err.status < 500) {
+		response.status(err.status).send({error: err.message});
+	} else {
+		response.status(500).send({error: 'Fail whale'});
+	}
+});
 
 // Ready to go, start the bunker!
 var port = process.env.PORT || 3333;
