@@ -24,8 +24,8 @@ if ('development' == env) {
 		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || '',
-		secret: process.env.NOTIFICARE_SECRET || ''
+		key: process.env.NOTIFICARE_KEY || 'af08ba316475891e85ebef94b121d41174359f2a63b4f61933239bb2656fa1ae',
+		secret: process.env.NOTIFICARE_SECRET || '2752ab0ea031c50411e6052cf7c4fc224325d789a2d890bccfc2028dff4979c6'
 	});
 } else {
 	app.enable('trust proxy');
