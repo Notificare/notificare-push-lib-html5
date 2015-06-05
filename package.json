@@ -1,7 +1,7 @@
 {
 	"name": "notificare-api-wrapper",
 	"description": "Notificare REST API",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"private": true,
 	"dependencies": {
 	  "express": "^4.8.0",
