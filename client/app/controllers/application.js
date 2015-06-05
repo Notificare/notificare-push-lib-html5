@@ -1,5 +1,8 @@
 MyApp.ApplicationController = Ember.Controller.extend({
 
+    /**
+     * Start here
+     */
 	start: function() {
 
         var options = {
@@ -33,13 +36,11 @@ MyApp.ApplicationController = Ember.Controller.extend({
         });
 
         $("#notificare").bind("notificare:didGetWebSocketError", function(event) {
-            //console.log(event);
-
-        });
+            this.start();
+        }.bind(this));
 
         $("#notificare").bind("notificare:didCloseWebSocket", function(event) {
-            //console.log(event);
-
+            this.start();
         });
     }
 
