@@ -32,9 +32,9 @@ ReplyResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(201, {reply: body});
+					response.status(201).send({reply: body});
 				}
 			}.bind(this));
 		}

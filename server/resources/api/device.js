@@ -40,9 +40,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(201, {tags: body.tags});
+					response.status(201).send({tags: body.tags});
 				}
 			}.bind(this));
 		},
@@ -57,9 +57,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(201, {device: body});
+					response.status(201).send({device: body});
 				}
 			}.bind(this));
 		},
@@ -76,9 +76,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(200, {device: body});
+					response.status(200).send({device: body});
 				}
 			}.bind(this));
 		},
@@ -95,9 +95,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(200, {device: body});
+					response.status(200).send({device: body});
 				}
 			}.bind(this));
 		},
@@ -114,9 +114,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(200, {device: body});
+					response.status(200).send({device: body});
 				}
 			}.bind(this));
 		},
@@ -133,9 +133,9 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode >= 400) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(200, {device: body});
+					response.status(200).send({device: body});
 				}
 			}.bind(this));
 		},
@@ -152,10 +152,10 @@ DeviceResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (clientResponse.statusCode != 200) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
 					
-					response.send(200,{});
+					response.status(200).send({});
 					
 				}
 			}.bind(this));

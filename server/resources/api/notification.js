@@ -34,9 +34,9 @@ NotificationResource.prototype = {
 				if (err) {
 					next(err);
 				} else if (200 != clientResponse.statusCode) {
-					response.send(clientResponse.statusCode, body.error);
+					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.send(200, {notification: body.notification});
+					response.status(200).send({notification: body.notification});
 				}
 			}.bind(this));
 		}
