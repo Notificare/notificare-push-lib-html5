@@ -23,6 +23,7 @@ window.MyApp = Ember.Application.create({
 });
 
 
+
 /*
  * When running a test
  */
