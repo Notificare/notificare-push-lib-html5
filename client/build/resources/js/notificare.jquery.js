@@ -70,69 +70,123 @@
             };
 
             if (this.options.nativeNotifications) {
-                if (window.Notification) {
-                    this.log('Notificare: Notification is supported');
 
-                    if (Notification.permission === 'default') {
-                        this.log('Notificare: Native notifications requested to the user');
+                // Safari Website Push
+                if ('safari' in window && 'pushNotification' in window.safari) {
 
-                        $('#modal-simple-auth').modal('show');
+                    $('#modal-simple-auth').modal('show');
 
-                        $('#accept-notifications').click(function (e) {
-                            Notification.requestPermission(function () {
-                                $('#modal-simple-auth').modal('hide');
-                                _this.log('Notificare: Native notifications accepted by the user');
-                                _this.setSocket();
+                    $('#accept-notifications').click(function (e) {
+
+                        $('#modal-simple-auth').modal('hide');
+
+                        var data = window.safari.pushNotification.permission(_this.options.pushId);
+
+                        if (data.permission == 'default') {
+                            _this.log('Notificare: Native notifications requested to the user');
+                            window.safari.pushNotification.requestPermission(
+                                "https://push.notifica.re/website-push/safari",
+                                _this.options.pushId,
+                                {applicationKey: _this.options.appKey}, function() {
+
+                                    console.log('got here', data.deviceToken);
+                                    if(data.deviceToken){
+                                        _this.log('Notificare: Native notifications granted by the user');
+                                        $('#modal-simple-auth').modal('hide');
+                                        $(_this.element).trigger("notificare:didRegisterSafariWebsitePush", data.deviceToken);
+                                        _this.registerDevice(data.deviceToken);
+                                        _this.setCookie(data.deviceToken);
+                                        _this.logEvent({
+                                            sessionID: _this.uniqueId,
+                                            type: 're.notifica.event.application.Install'
+                                        });
+                                    } else {
+                                        _this.log('Notificare: Native notifications denied by the user');
+                                    }
+
+                                });
+                        } else if (data.permission == 'denied') {
+                            _this.log('Notificare: Native notifications denied by the user');
+                        } else if (data.permission == 'granted') {
+
+                            $(_this.element).trigger("notificare:didRegisterSafariWebsitePush", data.deviceToken);
+                            _this.registerDevice(data.deviceToken);
+                            _this.setCookie(data.deviceToken);
+                            _this.logEvent({
+                                sessionID: _this.uniqueId,
+                                type: 're.notifica.event.application.Install'
                             });
-                        });
+                        }
 
+                    });
 
-                    } else if (Notification.permission === 'granted') {
-                        this.log('Notificare: Native notifications granted by the user');
-                        this.setSocket();
-                    } else if (Notification.permission === 'denied') {
-                        this.log('Notificare: Native notifications denied by the user');
-                    } else {
-                        this.log('Notificare: Native notifications unknown permission');
-                    }
-
-                }else if (window.webkitNotifications) {
-                    this.log('Notificare: webkitNotifications is supported');
-
-                    if (window.webkitNotifications.checkPermission() == 0) {
-                        this.setSocket();
-                    }else{
-                        $('#modal-simple-auth').modal('show');
-                        var _this = this;
-                        $('#accept-notifications').click(function(e) {
-                            e.preventDefault();
-                            $('#modal-simple-auth').modal('hide');
-                            window.webkitNotifications.requestPermission(function(e){
-                                _this.setSocket();
-                            });
-
-                        });
-                    }
-                }else if (navigatior.mozNotification) {
-                    this.log('Notificare: webkitNotifications is supported');
-
-                    if (navigatior.mozNotification.checkPermission() == 0) {
-                        this.setSocket();
-                    }else{
-                        $('#modal-simple-auth').modal('show');
-                        var _this = this;
-                        $('#accept-notifications').click(function(e) {
-                            e.preventDefault();
-                            $('#modal-simple-auth').modal('hide');
-                            navigatior.mozNotification.requestPermission(function(e){
-                                _this.setSocket();
-                            });
-
-                        });
-                    }
                 } else {
-                    this.log('Notificare: Native notifications are not supported, falling back to UI only');
-                    this.setSocket();
+
+                    //Continue with Websockets
+                    if (window.Notification) {
+                        this.log('Notificare: Notification is supported');
+
+                        if (Notification.permission === 'default') {
+                            this.log('Notificare: Native notifications requested to the user');
+
+                            $('#modal-simple-auth').modal('show');
+
+                            $('#accept-notifications').click(function (e) {
+                                Notification.requestPermission(function () {
+                                    $('#modal-simple-auth').modal('hide');
+                                    _this.log('Notificare: Native notifications accepted by the user');
+                                    _this.setSocket();
+                                });
+                            });
+
+
+                        } else if (Notification.permission === 'granted') {
+                            this.log('Notificare: Native notifications granted by the user');
+                            this.setSocket();
+                        } else if (Notification.permission === 'denied') {
+                            this.log('Notificare: Native notifications denied by the user');
+                        } else {
+                            this.log('Notificare: Native notifications unknown permission');
+                        }
+
+                    }else if (window.webkitNotifications) {
+                        this.log('Notificare: webkitNotifications is supported');
+
+                        if (window.webkitNotifications.checkPermission() == 0) {
+                            this.setSocket();
+                        }else{
+                            $('#modal-simple-auth').modal('show');
+                            var _this = this;
+                            $('#accept-notifications').click(function(e) {
+                                e.preventDefault();
+                                $('#modal-simple-auth').modal('hide');
+                                window.webkitNotifications.requestPermission(function(e){
+                                    _this.setSocket();
+                                });
+
+                            });
+                        }
+                    }else if (navigator.mozNotification) {
+                        this.log('Notificare: webkitNotifications is supported');
+
+                        if (navigator.mozNotification.checkPermission() == 0) {
+                            this.setSocket();
+                        }else{
+                            $('#modal-simple-auth').modal('show');
+                            var _this = this;
+                            $('#accept-notifications').click(function(e) {
+                                e.preventDefault();
+                                $('#modal-simple-auth').modal('hide');
+                                navigator.mozNotification.requestPermission(function(e){
+                                    _this.setSocket();
+                                });
+
+                            });
+                        }
+                    } else {
+                        this.log('Notificare: Native notifications are not supported, falling back to UI only');
+                        this.setSocket();
+                    }
                 }
 
             } else {

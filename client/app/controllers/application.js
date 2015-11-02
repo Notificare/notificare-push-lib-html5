@@ -1,14 +1,15 @@
 MyApp.ApplicationController = Ember.Controller.extend({
-
     /**
      * Start here
      */
 	start: function() {
 
         var options = {
-            appName: 'Notificare Websockets Demo',
+            appName: 'Notificare HTML5 JS SDK',
             nativeNotifications: true,
             appVersion: '1.0',
+            appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
+            pushId: 'web.re.notifica.html5sdk',
             userID: null,
             username: null
         };

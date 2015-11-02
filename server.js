@@ -24,8 +24,8 @@ if ('development' == env) {
 		host: 'push.notifica.re'
 	});
 	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || 'af08ba316475891e85ebef94b121d41174359f2a63b4f61933239bb2656fa1ae',
-		secret: process.env.NOTIFICARE_SECRET || '2752ab0ea031c50411e6052cf7c4fc224325d789a2d890bccfc2028dff4979c6'
+		key: process.env.NOTIFICARE_KEY || '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
+		secret: process.env.NOTIFICARE_SECRET || '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854'
 	});
 } else {
 	app.enable('trust proxy');
