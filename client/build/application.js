@@ -148,7 +148,8 @@ MyApp.ApplicationController = Ember.Controller.extend({
             appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
             pushId: 'web.re.notifica.html5sdk',
             userID: null,
-            username: null
+            username: null,
+            development: true
         };
 
         $('#myapp').notificare(options);
@@ -170,6 +171,10 @@ MyApp.ApplicationController = Ember.Controller.extend({
         });
 
         $("#notificare").bind("notificare:didRegisterWebSocket", function(event, data) {
+            //console.log(event,data);
+        });
+
+        $("#notificare").bind("notificare:didRegisterSafariWebsitePush", function(event, data) {
             //console.log(event,data);
         });
 

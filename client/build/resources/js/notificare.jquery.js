@@ -89,7 +89,6 @@
                                 _this.options.pushId,
                                 {applicationKey: _this.options.appKey}, function() {
 
-                                    console.log('got here', data.deviceToken);
                                     if(data.deviceToken){
                                         _this.log('Notificare: Native notifications granted by the user');
                                         $('#modal-simple-auth').modal('hide');

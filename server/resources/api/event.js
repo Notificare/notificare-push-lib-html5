@@ -34,7 +34,7 @@ EventResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(201).send({event: body});
+					response.status(201).send(body);
 				}
 			}.bind(this));
 		}

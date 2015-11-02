@@ -59,7 +59,7 @@ DeviceResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(201).send({device: body});
+					response.status(201).send(body);
 				}
 			}.bind(this));
 		},
@@ -78,7 +78,7 @@ DeviceResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(200).send({device: body});
+					response.status(200).send(body);
 				}
 			}.bind(this));
 		},
@@ -97,7 +97,7 @@ DeviceResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(200).send({device: body});
+					response.status(200).send(body);
 				}
 			}.bind(this));
 		},
@@ -116,7 +116,7 @@ DeviceResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(200).send({device: body});
+					response.status(200).send(body);
 				}
 			}.bind(this));
 		},
@@ -135,7 +135,7 @@ DeviceResource.prototype = {
 				} else if (clientResponse.statusCode >= 400) {
 					response.status(clientResponse.statusCode).send(body.error);
 				} else {
-					response.status(200).send({device: body});
+					response.status(200).send(body);
 				}
 			}.bind(this));
 		},
