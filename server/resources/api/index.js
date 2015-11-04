@@ -7,7 +7,9 @@ var express = require('express'),
 	NotificationResource = require('./notification'),
 	DeviceResource = require('./device'),
 	EventResource = require('./event'),
-	ReplyResource = require('./reply');
+	ReplyResource = require('./reply'),
+	RegionResource = require('./region'),
+	TriggerResource = require('./trigger');
 
 
 module.exports = API = function(options) {
@@ -26,6 +28,8 @@ API.prototype = {
 			.use('/notifications', new NotificationResource().attach(app))
 			.use('/devices', new DeviceResource().attach(app))
 			.use('/events', new EventResource().attach(app))
-			.use('/replies', new ReplyResource().attach(app));
+			.use('/replies', new ReplyResource().attach(app))
+			.use('/regions', new RegionResource().attach(app))
+			.use('/triggers', new TriggerResource().attach(app));
 	}
 };

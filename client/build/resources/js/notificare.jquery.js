@@ -45,12 +45,17 @@
             this.reconnectTimeout = 0;
             this.minReconnectTimeout = 1000;
             this.maxReconnectTimeout = 60000;
+            this.allowedNotifications = false;
 
             var _this = this;
 
             this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.application.Open'
+            }, function(data){
+
+            }, function(error){
+
             });
 
             window.onbeforeunload = function() {
@@ -67,6 +72,10 @@
                     data: {
                         length: seconds
                     }
+                }, function(data){
+
+                }, function(error){
+
                 });
 
                 return 'Leaving this page will prevent notifications from being received.';
@@ -78,18 +87,21 @@
                 var data = window.safari.pushNotification.permission(_this.options.pushId);
 
                 if (data.permission == 'default') {
-                    _this.log('Notificare: Native notifications requested to the user');
 
                     window.safari.pushNotification.requestPermission( _this.options.websitePushUrl, _this.options.pushId, {applicationKey: _this.options.appKey}, function() {
 
                         if(data.deviceToken){
-                            _this.log('Notificare: Native notifications granted by the user');
-                            $('#modal-simple-auth').modal('hide');
                             $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
+                            _this.allowedNotifications = true;
                             _this.logEvent({
                                 sessionID: _this.uniqueId,
                                 type: 're.notifica.event.application.Install'
+                            },  function(data){
+
+                            }, function(error){
+
                             });
+
                         } else {
                             if(this.options.allowSilent){
                                 this.setSocket();
@@ -102,6 +114,7 @@
                         this.setSocket();
                     }
                 } else if (data.permission == 'granted') {
+                    _this.allowedNotifications = true;
                     $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                 }
 
@@ -112,55 +125,78 @@
                 //Modern browsers using window.Notification
                 if (window.Notification) {
 
-                    this.log('Notificare: window.Notification is supported');
-
                     if (Notification.permission === 'default') {
 
-                        this.log('Notificare: Native notifications requested to the user');
-
                         Notification.requestPermission(function () {
-                            _this.log('Notificare: Native notifications accepted by the user');
+                            _this.allowedNotifications = true;
                             _this.setSocket();
                         });
 
 
                     } else if (Notification.permission === 'granted') {
-                        this.log('Notificare: Native notifications granted by the user');
+                        this.allowedNotifications = true;
                         this.setSocket();
                     } else if (Notification.permission === 'denied') {
                         if(this.options.allowSilent){
                             this.setSocket();
                         }
                     } else {
-                        this.log('Notificare: Native notifications unknown permission');
+                        if(this.options.allowSilent){
+                            this.setSocket();
+                        }
                     }
 
                     //Legacy webkit browsers
                 } else if (window.webkitNotifications) {
-                    this.log('Notificare: webkitNotifications is supported');
 
                     if (window.webkitNotifications.checkPermission() == 0) {
+                        this.allowedNotifications = true;
                         this.setSocket();
-                    }else{
+                    } else {
                         window.webkitNotifications.requestPermission(function(e){
-                            _this.setSocket();
+
+                            if(window.webkitNotifications.checkPermission() == 1){
+                                if(_this.options.allowSilent){
+                                    _this.setSocket();
+                                }
+                            } else if(window.webkitNotifications.checkPermission() == 2){
+                                if(_this.options.allowSilent){
+                                    _this.setSocket();
+                                }
+                            } else {
+                                _this.allowedNotifications = true;
+                                _this.setSocket();
+                            }
+
                         });
                     }
 
                     //Legacy mozilla browsers
                 } else if (navigator.mozNotification) {
-                    this.log('Notificare: mozNotifications is supported');
 
                     if (navigator.mozNotification.checkPermission() == 0) {
+                        this.allowedNotifications = true;
                         this.setSocket();
                     }else{
                         navigator.mozNotification.requestPermission(function(e){
-                            _this.setSocket();
+                            if(navigator.mozNotification.checkPermission() == 1){
+                                if(_this.options.allowSilent){
+                                    _this.setSocket();
+                                }
+                            } else if(navigator.mozNotification.checkPermission() == 2){
+                                if(_this.options.allowSilent){
+                                    _this.setSocket();
+                                }
+                            } else {
+                                _this.allowedNotifications = true;
+                                _this.setSocket();
+                            }
                         });
                     }
                 } else {
-                    this.log('Notificare: Native notifications are not supported, falling back to UI only');
-                    this.setSocket();
+                    if(this.options.allowSilent){
+                        this.setSocket();
+                    }
                 }
             }
 
@@ -265,6 +301,14 @@
                     if(_this.getCookie('uuid')){
                         connection.send(JSON.stringify({"command":"register", "uuid" : _this.getCookie('uuid')}));
                     }else{
+                        _this.logEvent({
+                            sessionID: _this.uniqueId,
+                            type: 're.notifica.event.application.Install'
+                        },  function(data){
+
+                        }, function(error){
+
+                        });
                         connection.send(JSON.stringify({"command":"register"}));
                     }
 
@@ -276,10 +320,6 @@
                         var data = JSON.parse(message.data);
                         if (data.registration) {
                             $(_this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
-                            _this.logEvent({
-                                sessionID: this.uniqueId,
-                                type: 're.notifica.event.application.Install'
-                            });
                         } else if (data.notification) {
                             _this.getNotification(data.notification);
                         }
@@ -345,94 +385,157 @@
          */
         getNotification: function (notification) {
 
-            this.log({
+            this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Receive',
-                notification: msg.notification.id,
+                notification: notification.id,
                 userID: this.options.userId || null,
                 deviceID: this.getCookie('uuid')
+            },  function(data){
+
+            }, function(error){
+
             });
 
             $(this.element).element.trigger("notificare:didReceiveNotification", notification);
 
             var _this = this;
+
             $.ajax({
                 type: "GET",
                 url: this.options.apiUrl + '/notifications/' + notification.id
             }).done(function( msg ) {
-                _this.showNotification(msg);
+                if(_this.allowedNotifications){
+                    _this.showNotification(msg);
+                }
             }).fail(function( msg ) {
-                _this.log('Notificare: Failed to open notification');
+                _this.getNotification(notification);
             });
 
         },
+
+        openNotification: function (notification) {
+
+            var _this = this;
+
+            $.ajax({
+                type: "GET",
+                url: this.options.apiUrl + '/notifications/' + notification.id
+            }).done(function( msg ) {
+                $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
+                _this.logEvent({
+                    sessionID: _this.uniqueId,
+                    type: 're.notifica.event.notification.Open',
+                    notification: msg.notification.id,
+                    userID: _this.options.userId || null,
+                    deviceID: _this.getCookie('uuid')
+                },  function(data){
+
+                }, function(error){
+
+                });
+            }).fail(function( msg ) {
+                _this.openNotification(notification);
+            });
+
+        },
+
         /**
          * Show notification
          * @param msg
          */
         showNotification: function (msg) {
-            this.log({
+
+            var _this = this;
+
+            if ("Notification" in window) {
+                var n = new Notification(
+                    this.options.appName,
+                    {
+                        'body': msg.notification.message,
+                        'tag': msg.notification.id,
+                        'icon': '/favicon.ico'
+                    }
+                );
+                // remove the notification from Notification Center when it is clicked
+                n.onclick = function () {
+                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
+                    _this._logNotificationEvents(msg);
+                    this.close();
+                };
+
+            } else if ("webkitNotifications" in window) {
+                var n = window.webkitNotifications.createNotification('/favicon.ico', this.options.appName, msg.notification.message);
+                n.show();
+                n.onclick = function () {
+                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
+                    _this._logNotificationEvents(msg);
+                };
+
+            } else if ("mozNotification" in navigator) {
+                var n = navigator.mozNotification.createNotification(this.options.appName, msg.notification.message, '/favicon.ico');
+                n.show();
+                n.onclick = function () {
+                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
+                    _this._logNotificationEvents(msg);
+                };
+            }
+
+        },
+
+        /**
+         * Log Notification Open events
+         * @param msg
+         */
+        _logNotificationEvents: function(msg){
+            this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Influenced',
                 notification: msg.notification.id,
                 userID: this.options.userId || null,
                 deviceID: this.getCookie('uuid')
+            },  function(data){
+
+            }, function(error){
+
             });
 
-            this.log({
+            this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Open',
                 notification: msg.notification.id,
                 userID: this.options.userId || null,
                 deviceID: this.getCookie('uuid')
+            },  function(data){
+
+            }, function(error){
+
             });
-
-            if(this.options.nativeNotifications) {
-                if ("Notification" in window) {
-                    var n = new Notification(
-                        this.options.appName,
-                        {
-                            'body': msg.notification.message,
-                            'tag': msg.notification.id,
-                            'icon': '/favicon.ico'
-                        }
-                    );
-                    // remove the notification from Notification Center when it is clicked
-                    n.onclick = function () {
-                        $(this.element).element.trigger("notificare:didOpenNotification", msg.notification);
-                        this.close();
-                    };
-
-                } else if ("webkitNotifications" in window) {
-                    this.notification = window.webkitNotifications.createNotification('/favicon.ico', this.options.appName, msg.notification.message);
-                    this.notification.show();
-
-                } else if ("mozNotification" in navigator) {
-                    this.notification = navigator.mozNotification.createNotification(this.options.appName, msg.notification.message, '/favicon.ico');
-                    this.notification.show();
-                }
-            }
-
         },
+
         /**
          * Log an event
          * @param data
+         * @param success
+         * @param errors
          */
-        logEvent: function (data) {
+        logEvent: function (data, success, errors) {
             $.ajax({
                 type: "POST",
                 url: this.options.apiUrl + '/events',
                 data: data,
                 dataType: 'json'
             }).done(function( msg ) {
-                this.log('Notificare: Log Registered');
+                success(msg);
             }.bind(this))
             .fail(function( msg ) {
-                this.log('Notificare: Failed to register log');
+                errors('Notificare: Failed to register log');
             }.bind(this));
         },
         /**
-         * Get device tags
+         * Get tags for a device
+         * @param success
+         * @param errors
          */
         getTags: function (success, errors) {
             if (this.getCookie('uuid')) {
@@ -450,8 +553,10 @@
             }
         },
         /**
-         * Add tags
+         * Add tags to a device
          * @param data
+         * @param success
+         * @param errors
          */
         addTags: function (data, success, errors) {
             if (this.getCookie('uuid')) {
@@ -473,8 +578,10 @@
             }
         },
         /**
-         * Remove tag
+         * Remove tags for a device
          * @param data
+         * @param success
+         * @param errors
          */
         removeTag: function (data, success, errors) {
 
@@ -497,7 +604,9 @@
             }
         },
         /**
-         * Clear tags
+         * Clear all device tags
+         * @param success
+         * @param errors
          */
         clearTags: function (success, errors) {
 
@@ -565,6 +674,15 @@
         },
 
         /**
+         * Stop location updates
+         */
+        stopLocationUpdates: function(){
+            if (navigator.geolocation) {
+                navigator.geolocation.clearWatch();
+            }
+        },
+
+        /**
          * Update device location
          * @param position
          * @param country
@@ -594,6 +712,11 @@
 
         },
 
+        /**
+         * Get a device country by lat and lng
+         * @param position
+         * @param callback
+         */
         getDeviceCountry: function(position, callback){
 
             $.ajax({

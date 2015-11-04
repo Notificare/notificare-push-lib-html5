@@ -146,8 +146,7 @@ MyApp.ApplicationController = Ember.Controller.extend({
             allowSilent: true,
             appVersion: '1.0',
             appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
-            pushId: 'web.re.notifica.html5sdk',
-            development: true
+            pushId: 'web.re.notifica.html5sdk'
         };
 
         var instance = $('#myapp').notificare(options);
