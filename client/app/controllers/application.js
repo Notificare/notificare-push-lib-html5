@@ -6,48 +6,40 @@ MyApp.ApplicationController = Ember.Controller.extend({
 
         var options = {
             appName: 'Notificare HTML5 JS SDK',
-            nativeNotifications: true,
+            allowSilent: true,
             appVersion: '1.0',
             appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
             pushId: 'web.re.notifica.html5sdk',
-            userID: null,
-            username: null,
             development: true
         };
 
-        $('#myapp').notificare(options);
+        var instance = $('#myapp').notificare(options);
 
-        $("#notificare").bind("notificare:willOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
+            //instance.notificare("userId","userID");
+            //instance.notificare("username","userName");
+            instance.notificare("registerDevice",data);
         });
 
-        $("#notificare").bind("notificare:didOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
+            //Here it's safe to register tags
+            instance.notificare("addTags", ['one', 'two'], function(){
+                instance.notificare("getTags", function(tags){
+                    console.log(tags);
+                });
+            });
+
         });
 
-        $("#notificare").bind("notificare:didFailToOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
+            //instance.notificare("registerDevice",data);
         });
 
-        $("#notificare").bind("notificare:didConnectToWebSocket", function(event) {
-            //console.log(event);
+        $("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
+            // data will be the notification object
         });
 
-        $("#notificare").bind("notificare:didRegisterWebSocket", function(event, data) {
-            //console.log(event,data);
-        });
 
-        $("#notificare").bind("notificare:didRegisterSafariWebsitePush", function(event, data) {
-            //console.log(event,data);
-        });
-
-        $("#notificare").bind("notificare:didGetWebSocketError", function(event) {
-            this.start();
-        }.bind(this));
-
-        $("#notificare").bind("notificare:didCloseWebSocket", function(event) {
-            this.start();
-        });
     }
 
 }); 

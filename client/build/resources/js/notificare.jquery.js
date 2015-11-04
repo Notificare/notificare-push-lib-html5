@@ -12,12 +12,15 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.1.0',
+            sdkVersion: '1.6.0',
             apiUrl: "/api",
+            websitePushUrl: "https://push.notifica.re/website-push/safari",
             wssUrl: "wss://websocket.notifica.re",
             protocols: ['notificare-push'],
             daysToExpire: '30',
-            clientInfo: new UAParser()
+            clientInfo: new UAParser(),
+            userId: null,
+            username: null
         };
 
     // The actual plugin constructor
@@ -69,130 +72,120 @@
                 return 'Leaving this page will prevent notifications from being received.';
             };
 
-            if (this.options.nativeNotifications) {
+            // Safari Website Push
+            if ('safari' in window && 'pushNotification' in window.safari && _this.options.pushId) {
 
-                // Safari Website Push
-                if ('safari' in window && 'pushNotification' in window.safari) {
+                var data = window.safari.pushNotification.permission(_this.options.pushId);
 
-                    $('#modal-simple-auth').modal('show');
+                if (data.permission == 'default') {
+                    _this.log('Notificare: Native notifications requested to the user');
 
-                    $('#accept-notifications').click(function (e) {
+                    window.safari.pushNotification.requestPermission( _this.options.websitePushUrl, _this.options.pushId, {applicationKey: _this.options.appKey}, function() {
 
-                        $('#modal-simple-auth').modal('hide');
-
-                        var data = window.safari.pushNotification.permission(_this.options.pushId);
-
-                        if (data.permission == 'default') {
-                            _this.log('Notificare: Native notifications requested to the user');
-                            window.safari.pushNotification.requestPermission(
-                                "https://push.notifica.re/website-push/safari",
-                                _this.options.pushId,
-                                {applicationKey: _this.options.appKey}, function() {
-
-                                    if(data.deviceToken){
-                                        _this.log('Notificare: Native notifications granted by the user');
-                                        $('#modal-simple-auth').modal('hide');
-                                        $(_this.element).trigger("notificare:didRegisterSafariWebsitePush", data.deviceToken);
-                                        _this.registerDevice(data.deviceToken);
-                                        _this.setCookie(data.deviceToken);
-                                        _this.logEvent({
-                                            sessionID: _this.uniqueId,
-                                            type: 're.notifica.event.application.Install'
-                                        });
-                                    } else {
-                                        _this.log('Notificare: Native notifications denied by the user');
-                                    }
-
-                                });
-                        } else if (data.permission == 'denied') {
-                            _this.log('Notificare: Native notifications denied by the user');
-                        } else if (data.permission == 'granted') {
-
-                            $(_this.element).trigger("notificare:didRegisterSafariWebsitePush", data.deviceToken);
-                            _this.registerDevice(data.deviceToken);
-                            _this.setCookie(data.deviceToken);
+                        if(data.deviceToken){
+                            _this.log('Notificare: Native notifications granted by the user');
+                            $('#modal-simple-auth').modal('hide');
+                            $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                             _this.logEvent({
                                 sessionID: _this.uniqueId,
                                 type: 're.notifica.event.application.Install'
                             });
+                        } else {
+                            if(this.options.allowSilent){
+                                this.setSocket();
+                            }
                         }
 
                     });
-
-                } else {
-
-                    //Continue with Websockets
-                    if (window.Notification) {
-                        this.log('Notificare: Notification is supported');
-
-                        if (Notification.permission === 'default') {
-                            this.log('Notificare: Native notifications requested to the user');
-
-                            $('#modal-simple-auth').modal('show');
-
-                            $('#accept-notifications').click(function (e) {
-                                Notification.requestPermission(function () {
-                                    $('#modal-simple-auth').modal('hide');
-                                    _this.log('Notificare: Native notifications accepted by the user');
-                                    _this.setSocket();
-                                });
-                            });
-
-
-                        } else if (Notification.permission === 'granted') {
-                            this.log('Notificare: Native notifications granted by the user');
-                            this.setSocket();
-                        } else if (Notification.permission === 'denied') {
-                            this.log('Notificare: Native notifications denied by the user');
-                        } else {
-                            this.log('Notificare: Native notifications unknown permission');
-                        }
-
-                    }else if (window.webkitNotifications) {
-                        this.log('Notificare: webkitNotifications is supported');
-
-                        if (window.webkitNotifications.checkPermission() == 0) {
-                            this.setSocket();
-                        }else{
-                            $('#modal-simple-auth').modal('show');
-                            var _this = this;
-                            $('#accept-notifications').click(function(e) {
-                                e.preventDefault();
-                                $('#modal-simple-auth').modal('hide');
-                                window.webkitNotifications.requestPermission(function(e){
-                                    _this.setSocket();
-                                });
-
-                            });
-                        }
-                    }else if (navigator.mozNotification) {
-                        this.log('Notificare: webkitNotifications is supported');
-
-                        if (navigator.mozNotification.checkPermission() == 0) {
-                            this.setSocket();
-                        }else{
-                            $('#modal-simple-auth').modal('show');
-                            var _this = this;
-                            $('#accept-notifications').click(function(e) {
-                                e.preventDefault();
-                                $('#modal-simple-auth').modal('hide');
-                                navigator.mozNotification.requestPermission(function(e){
-                                    _this.setSocket();
-                                });
-
-                            });
-                        }
-                    } else {
-                        this.log('Notificare: Native notifications are not supported, falling back to UI only');
+                } else if (data.permission == 'denied') {
+                    if(this.options.allowSilent){
                         this.setSocket();
                     }
+                } else if (data.permission == 'granted') {
+                    $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                 }
 
             } else {
-                this.log('Notificare: Using UI only');
-                this.setSocket();
+
+                //Continue with Websockets
+
+                //Modern browsers using window.Notification
+                if (window.Notification) {
+
+                    this.log('Notificare: window.Notification is supported');
+
+                    if (Notification.permission === 'default') {
+
+                        this.log('Notificare: Native notifications requested to the user');
+
+                        Notification.requestPermission(function () {
+                            _this.log('Notificare: Native notifications accepted by the user');
+                            _this.setSocket();
+                        });
+
+
+                    } else if (Notification.permission === 'granted') {
+                        this.log('Notificare: Native notifications granted by the user');
+                        this.setSocket();
+                    } else if (Notification.permission === 'denied') {
+                        if(this.options.allowSilent){
+                            this.setSocket();
+                        }
+                    } else {
+                        this.log('Notificare: Native notifications unknown permission');
+                    }
+
+                    //Legacy webkit browsers
+                } else if (window.webkitNotifications) {
+                    this.log('Notificare: webkitNotifications is supported');
+
+                    if (window.webkitNotifications.checkPermission() == 0) {
+                        this.setSocket();
+                    }else{
+                        window.webkitNotifications.requestPermission(function(e){
+                            _this.setSocket();
+                        });
+                    }
+
+                    //Legacy mozilla browsers
+                } else if (navigator.mozNotification) {
+                    this.log('Notificare: mozNotifications is supported');
+
+                    if (navigator.mozNotification.checkPermission() == 0) {
+                        this.setSocket();
+                    }else{
+                        navigator.mozNotification.requestPermission(function(e){
+                            _this.setSocket();
+                        });
+                    }
+                } else {
+                    this.log('Notificare: Native notifications are not supported, falling back to UI only');
+                    this.setSocket();
+                }
             }
 
+
+        },
+        /**
+         * Get/Set option key
+         * @param key
+         * @param val
+         * @returns {*}
+         */
+        userId: function (val) {
+
+            if (val) {
+                this.options.userId = val;
+            } else {
+                return this.options.userId;
+            }
+        },
+        username: function (val) {
+            if (val) {
+                this.options.username = val;
+            } else {
+                return this.options.username;
+            }
         },
         /**
          *
@@ -269,7 +262,6 @@
 
                 //On OPEN
                 connection.onopen = function () {
-                    $(_this.element).trigger("notificare:didConnectToWebSocket");
                     if(_this.getCookie('uuid')){
                         connection.send(JSON.stringify({"command":"register", "uuid" : _this.getCookie('uuid')}));
                     }else{
@@ -283,9 +275,7 @@
                     if (message.data) {
                         var data = JSON.parse(message.data);
                         if (data.registration) {
-                            $(_this.element).trigger("notificare:didRegisterWebSocket", data.registration.uuid);
-                            _this.registerDevice(data.registration.uuid);
-                            _this.setCookie(data.registration.uuid);
+                            $(_this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
                             _this.logEvent({
                                 sessionID: this.uniqueId,
                                 type: 're.notifica.event.application.Install'
@@ -298,25 +288,33 @@
 
                 //On ERROR
                 connection.onerror = function (e) {
-                    $(_this.element).trigger("notificare:didGetWebSocketError");
+                    _this.reconnect();
                 };
 
                 //On CLOSE
                 connection.onclose = function (e) {
-                    $(_this.element).trigger("notificare:didCloseWebSocket");
+                    _this.reconnect();
                 };
 
-            }else{
+            } else {
                 this.log('Notificare: Browser doesn\'t support websockets');
             }
 
         },
         /**
+         * API Requests
+         */
+
+        /**
          *
+         * Register Device
+         * @param uuid
          */
         registerDevice: function (uuid) {
             var d = new Date();
             var _this = this;
+
+            _this.setCookie(uuid);
 
             $.ajax({
                 type: "POST",
@@ -324,7 +322,7 @@
                 data: {
                     auth_token: this.options.token,
                     deviceID : uuid,
-                    userID : (this.options.userID) ? this.options.userID : null,
+                    userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
                     platform : this.options.clientInfo.getOS().name,
                     osVersion : this.options.clientInfo.getOS().version,
@@ -336,40 +334,48 @@
                 },
                 dataType: 'json'
             }).done(function( msg ) {
-                _this.log('Notificare: Device Registered');
+                $(_this.element).trigger("notificare:didRegisterDevice", uuid);
             }).fail(function( msg ) {
-                _this.log('Notificare: Failed to register device');
+                $(_this.element).trigger("notificare:didFailToRegisterDevice", uuid);
             });
         },
         /**
-         *
+         * Get notification
+         * @param notification
          */
         getNotification: function (notification) {
+
+            this.log({
+                sessionID: this.uniqueId,
+                type: 're.notifica.event.notification.Receive',
+                notification: msg.notification.id,
+                userID: this.options.userId || null,
+                deviceID: this.getCookie('uuid')
+            });
+
+            $(this.element).element.trigger("notificare:didReceiveNotification", notification);
 
             var _this = this;
             $.ajax({
                 type: "GET",
                 url: this.options.apiUrl + '/notifications/' + notification.id
             }).done(function( msg ) {
-                $(_this.element).trigger("notificare:willOpenNotification", notification.id);
                 _this.showNotification(msg);
             }).fail(function( msg ) {
-                $(_this.element).element.trigger("notificare:didFailToOpenNotification", msg);
                 _this.log('Notificare: Failed to open notification');
             });
 
         },
         /**
-         *
+         * Show notification
+         * @param msg
          */
         showNotification: function (msg) {
-            $(this.element).trigger("notificare:didOpenNotification", msg.notification);
-
             this.log({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Influenced',
                 notification: msg.notification.id,
-                userID: this.options.userID,
+                userID: this.options.userId || null,
                 deviceID: this.getCookie('uuid')
             });
 
@@ -377,7 +383,7 @@
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Open',
                 notification: msg.notification.id,
-                userID: this.options.userID,
+                userID: this.options.userId || null,
                 deviceID: this.getCookie('uuid')
             });
 
@@ -393,6 +399,7 @@
                     );
                     // remove the notification from Notification Center when it is clicked
                     n.onclick = function () {
+                        $(this.element).element.trigger("notificare:didOpenNotification", msg.notification);
                         this.close();
                     };
 
@@ -404,14 +411,12 @@
                     this.notification = navigator.mozNotification.createNotification(this.options.appName, msg.notification.message, '/favicon.ico');
                     this.notification.show();
                 }
-            } else {
-                $('#modal-simple-message').modal('show');
-                $('#modal-simple-message .modal-body').html(msg.notification.message);
             }
 
         },
         /**
-         *
+         * Log an event
+         * @param data
          */
         logEvent: function (data) {
             $.ajax({
@@ -422,32 +427,33 @@
             }).done(function( msg ) {
                 this.log('Notificare: Log Registered');
             }.bind(this))
-                .fail(function( msg ) {
-                    this.log('Notificare: Failed to register log');
-                }.bind(this));
+            .fail(function( msg ) {
+                this.log('Notificare: Failed to register log');
+            }.bind(this));
         },
         /**
-         *
+         * Get device tags
          */
-        getTags: function () {
+        getTags: function (callback) {
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
                     url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/tags'
                 }).done(function( msg ) {
-                    this.log('Notificare: Tags' + msg.tags);
+                    callback(msg.tags);
                 }.bind(this))
                 .fail(function( msg ) {
-                    this.log('Notificare: Failed to get tags' + msg);
+                        callback(null);
                 }.bind(this));
             } else {
                 this.log('Notificare: Calling get tags before having a deviceId');
             }
         },
         /**
-         *
+         * Add tags
+         * @param data
          */
-        addTags: function (data) {
+        addTags: function (data, callback) {
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
@@ -457,19 +463,20 @@
                     },
                     dataType: 'json'
                 }).done(function( msg ) {
-                    this.log('Notificare: Tag Registered' + msg);
+                    callback(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    this.log('Notificare: Failed to register tag' + msg);
+                    callback(null);
                 }.bind(this));
             } else {
-                this.log('Notificare: Calling add tags before having a deviceId');
+                callback(null);
             }
         },
         /**
-         *
+         * Remove tag
+         * @param data
          */
-        removeTag: function (data) {
+        removeTag: function (data, callback) {
 
             if (this.getCookie('uuid')) {
                 $.ajax({
@@ -480,19 +487,19 @@
                     },
                     dataType: 'json'
                 }).done(function( msg ) {
-                    this.log('Notificare: Tag removed' + msg);
+                    callback(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    this.log('Notificare: Failed to remove tag');
+                    callback(null);
                 }.bind(this));
             } else {
-                this.log('Notificare: Calling remove tag before having a deviceId');
+                callback(null);
             }
         },
         /**
-         *
+         * Clear tags
          */
-        clearTags: function () {
+        clearTags: function (callback) {
 
             if (this.getCookie('uuid')) {
                 $.ajax({
@@ -501,24 +508,26 @@
                     data: null,
                     dataType: 'json'
                 }).done(function( msg ) {
-                    this.log('Notificare: Tags removed' + msg);
+                    callback(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    this.log('Notificare: Failed to remove tag');
+                    callback(null);
                 }.bind(this));
             } else {
-                this.log('Notificare: Calling remove tag before having a deviceId');
+                callback(null);
             }
         },
         /**
-         *
+         * Register a reply
+         * @param notification
+         * @param data
          */
         reply: function (notification, data) {
             $.ajax({
                 type: "POST",
                 url: this.options.apiUrl + '/replies',
                 data: {
-                    userID: this.options.userID,
+                    userID: this.options.userId,
                     deviceID: this.getCookie('uuid'),
                     notification: notification,
                     data: data
@@ -536,11 +545,45 @@
     // A really lightweight plugin wrapper around the constructor,
     // preventing against multiple instantiations
     $.fn[ pluginName ] = function ( options ) {
-        return this.each(function() {
-            if ( !$.data( this, pluginName ) ) {
-                $.data( this, pluginName, new Plugin( this, options ) );
+
+        // If the first parameter is a string, treat this as a call to
+        // a public method.
+        if (typeof arguments[0] === 'string') {
+            var methodName = arguments[0];
+            var args = Array.prototype.slice.call(arguments, 1);
+            var returnVal;
+            this.each(function() {
+                // Check that the element has a plugin instance, and that
+                // the requested public method exists.
+
+                if ($.data(this, pluginName) && typeof $.data(this, pluginName)[methodName] === 'function') {
+                    // Call the method of the Plugin instance, and Pass it
+                    // the supplied arguments.
+
+                    var plugin =  $.data(this, pluginName);
+                    returnVal = plugin[methodName].apply(plugin, args);
+
+                } else {
+                    throw new Error('Method ' +  methodName + ' does not exist on ' + pluginName + '.jquery.js');
+                }
+            });
+            if (returnVal !== undefined){
+                // If the method returned a value, return the value.
+                return returnVal;
+            } else {
+                // Otherwise, returning 'this' preserves chainability.
+                return this;
             }
-        });
+            // If the first parameter is an object (options), or was omitted,
+            // instantiate a new instance of the plugin.
+        } else if (typeof options === "object" || !options) {
+            return this.each(function() {
+                if ( !$.data( this, pluginName ) ) {
+                    $.data( this, pluginName, new Plugin( this, options ) );
+                }
+            });
+        }
+
     };
 
 })( jQuery, window, document );

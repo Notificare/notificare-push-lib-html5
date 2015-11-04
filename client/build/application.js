@@ -26,7 +26,7 @@ helpers = this.merge(helpers, Ember.Handlebars.helpers); data = data || {};
   data.buffer.push("<div class=\"container\">\n      <!-- Static navbar -->\n      <div class=\"navbar navbar-default\" role=\"navigation\">\n        <div class=\"container-fluid\">\n          <div class=\"navbar-header\">\n            <button type=\"button\" class=\"navbar-toggle\" data-toggle=\"collapse\" data-target=\".navbar-collapse\">\n              <span class=\"sr-only\">Toggle navigation</span>\n              <span class=\"icon-bar\"></span>\n              <span class=\"icon-bar\"></span>\n              <span class=\"icon-bar\"></span>\n            </button>\n            <a class=\"navbar-brand\" href=\"http://notifica.re\">Project name</a>\n          </div>\n          <div class=\"navbar-collapse collapse\">\n            <ul class=\"nav navbar-nav\">\n              <li class=\"active\"><a href=\"#\">Link</a></li>\n              <li><a href=\"#\">Link</a></li>\n              <li><a href=\"#\">Link</a></li>\n              <li class=\"dropdown\">\n                <a href=\"#\" class=\"dropdown-toggle\" data-toggle=\"dropdown\">Dropdown <b class=\"caret\"></b></a>\n                <ul class=\"dropdown-menu\">\n                  <li><a href=\"#\">Action</a></li>\n                  <li><a href=\"#\">Another action</a></li>\n                  <li><a href=\"#\">Something else here</a></li>\n                  <li class=\"divider\"></li>\n                  <li class=\"dropdown-header\">Nav header</li>\n                  <li><a href=\"#\">Separated link</a></li>\n                  <li><a href=\"#\">One more separated link</a></li>\n                </ul>\n              </li>\n            </ul>\n            <ul class=\"nav navbar-nav navbar-right\">\n              <li class=\"active\"><a href=\"./\">Default</a></li>\n              <li><a href=\"../navbar-static-top/\">Static top</a></li>\n              <li><a href=\"../navbar-fixed-top/\">Fixed top</a></li>\n            </ul>\n          </div><!--/.nav-collapse -->\n        </div><!--/.container-fluid -->\n      </div>\n	");
   stack1 = helpers._triageMustache.call(depth0, "outlet", {hash:{},hashTypes:{},hashContexts:{},contexts:[depth0],types:["ID"],data:data});
   if(stack1 || stack1 === 0) { data.buffer.push(stack1); }
-  data.buffer.push("\n	\n</div> <!-- /container -->\n\n\n<div class=\"modal fade\" id=\"modal-simple-auth\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"remoteNotifications\" aria-hidden=\"true\">\n  <div class=\"modal-dialog\">\n    <div class=\"modal-content\">\n      <div class=\"modal-header\">\n        <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-hidden=\"true\">&times;</button>\n        <h4 class=\"modal-title\" id=\"remoteNotifications\">Remote Notifications</h4>\n      </div>\n      <div class=\"modal-body\">\n        Your browser supports native remote push notifications. Do you want to activate it?\n      </div>\n      <div class=\"modal-footer\">\n        <button type=\"button\" class=\"btn btn-default\" data-dismiss=\"modal\">No, thanks.</button>\n        <button type=\"button\" id=\"accept-notifications\" class=\"btn btn-primary\">Yes, please.</button>\n      </div>\n    </div>\n  </div>\n</div>\n\n\n<div id=\"modal-simple-message\" class=\"modal hide fade in\" style=\"display: none;\" aria-hidden=\"true\">\n    <div class=\"modal-header\">\n        <button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-hidden=\"true\">&times;</button>\n        <h6 id=\"modal-tablesLabel\">My App</h6>\n    </div>\n    <div class=\"modal-body\"></div>\n    <div class=\"modal-footer\">\n        <button class=\"btn btn-blue\" data-dismiss=\"modal\" aria-hidden=\"true\">OK, got it</button>\n    </div>\n</div>");
+  data.buffer.push("\n	\n</div> <!-- /container -->");
   return buffer;
   
 });
@@ -143,48 +143,40 @@ MyApp.ApplicationController = Ember.Controller.extend({
 
         var options = {
             appName: 'Notificare HTML5 JS SDK',
-            nativeNotifications: true,
+            allowSilent: true,
             appVersion: '1.0',
             appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
             pushId: 'web.re.notifica.html5sdk',
-            userID: null,
-            username: null,
             development: true
         };
 
-        $('#myapp').notificare(options);
+        var instance = $('#myapp').notificare(options);
 
-        $("#notificare").bind("notificare:willOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
+            //instance.notificare("userId","userID");
+            //instance.notificare("username","userName");
+            instance.notificare("registerDevice",data);
         });
 
-        $("#notificare").bind("notificare:didOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
+            //Here it's safe to register tags
+            instance.notificare("addTags", ['one', 'two'], function(){
+                instance.notificare("getTags", function(tags){
+                    console.log(tags);
+                });
+            });
+
         });
 
-        $("#notificare").bind("notificare:didFailToOpenNotification", function(event, data) {
-            //console.log(event, data);
+        $("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
+            //instance.notificare("registerDevice",data);
         });
 
-        $("#notificare").bind("notificare:didConnectToWebSocket", function(event) {
-            //console.log(event);
+        $("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
+            // data will be the notification object
         });
 
-        $("#notificare").bind("notificare:didRegisterWebSocket", function(event, data) {
-            //console.log(event,data);
-        });
 
-        $("#notificare").bind("notificare:didRegisterSafariWebsitePush", function(event, data) {
-            //console.log(event,data);
-        });
-
-        $("#notificare").bind("notificare:didGetWebSocketError", function(event) {
-            this.start();
-        }.bind(this));
-
-        $("#notificare").bind("notificare:didCloseWebSocket", function(event) {
-            this.start();
-        });
     }
 
 }); 
