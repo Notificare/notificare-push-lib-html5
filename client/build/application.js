@@ -160,12 +160,16 @@ MyApp.ApplicationController = Ember.Controller.extend({
 
         $("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
             //Here it's safe to register tags
-            instance.notificare("addTags", ['one', 'two'], function(){
-                instance.notificare("getTags", function(tags){
-                    console.log(tags);
-                });
+            instance.notificare("getTags", function(tags){
+                console.log(tags);
+            }, function(error){
+                console.log(error);
             });
-
+            instance.notificare("startLocationUpdates", function(data){
+                console.log(data);
+            }, function(error){
+                console.log(error);
+            });
         });
 
         $("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
@@ -173,10 +177,12 @@ MyApp.ApplicationController = Ember.Controller.extend({
         });
 
         $("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
-            // data will be the notification object
+            // data will be the minimized notification object
         });
 
-
+        $("#myapp").bind("notificare:didOpenNotification", function(event, data) {
+            // data will be the full notification object
+        });
     }
 
 }); 

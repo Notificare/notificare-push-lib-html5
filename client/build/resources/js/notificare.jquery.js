@@ -434,26 +434,26 @@
         /**
          * Get device tags
          */
-        getTags: function (callback) {
+        getTags: function (success, errors) {
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
                     url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/tags'
                 }).done(function( msg ) {
-                    callback(msg.tags);
+                    success(msg.tags);
                 }.bind(this))
                 .fail(function( msg ) {
-                        callback(null);
+                    errors("Notificare: Failed to get tags for device");
                 }.bind(this));
             } else {
-                this.log('Notificare: Calling get tags before having a deviceId');
+                errors('Notificare: Calling get tags before having a deviceId');
             }
         },
         /**
          * Add tags
          * @param data
          */
-        addTags: function (data, callback) {
+        addTags: function (data, success, errors) {
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
@@ -463,20 +463,20 @@
                     },
                     dataType: 'json'
                 }).done(function( msg ) {
-                    callback(msg);
+                    success(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    callback(null);
+                    errors("Notificare: Failed to add tags to device");
                 }.bind(this));
             } else {
-                callback(null);
+                errors("Notificare: Calling addTags before registering a deviceId");
             }
         },
         /**
          * Remove tag
          * @param data
          */
-        removeTag: function (data, callback) {
+        removeTag: function (data, success, errors) {
 
             if (this.getCookie('uuid')) {
                 $.ajax({
@@ -487,19 +487,19 @@
                     },
                     dataType: 'json'
                 }).done(function( msg ) {
-                    callback(msg);
+                    success(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    callback(null);
+                    errors(null);
                 }.bind(this));
             } else {
-                callback(null);
+                errors("Notificare: Calling removeTag before registering a deviceId");
             }
         },
         /**
          * Clear tags
          */
-        clearTags: function (callback) {
+        clearTags: function (success, errors) {
 
             if (this.getCookie('uuid')) {
                 $.ajax({
@@ -508,37 +508,149 @@
                     data: null,
                     dataType: 'json'
                 }).done(function( msg ) {
-                    callback(msg);
+                    success(msg);
                 }.bind(this))
                 .fail(function( msg ) {
-                    callback(null);
+                    errors("Failed to clear device tags.");
                 }.bind(this));
             } else {
-                callback(null);
+                errors("Notificare: Calling clearTags before registering a deviceId");
             }
+        },
+
+        /**
+         * Start Location Updates
+         */
+        startLocationUpdates: function (success, errors) {
+
+            var _this = this;
+
+            if (this.getCookie('uuid')) {
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.watchPosition(function(position){
+
+                        _this.getDeviceCountry(position, function(data){
+                            _this.updateLocation(position, data.country, function(data){
+                                success(data);
+                            }, function(){
+                                errors("Notificare: Failed to update device location");
+                            });
+                        });
+
+
+                    }, function(error){
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errors("Notificare: User denied the request for Geolocation");
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errors("Notificare: Location information is unavailable");
+                                break;
+                            case error.TIMEOUT:
+                                errors("Notificare: The request to get user location timed out");
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                errors("Notificare: An unknown location error occurred");
+                                break;
+                        }
+                    });
+                } else {
+                    errors("Notificare: Browser does not support Geolocation API");
+                }
+
+            } else {
+                errors("Notificare: Calling startLocationUpdates before registering a deviceId");
+            }
+        },
+
+        /**
+         * Update device location
+         * @param position
+         * @param country
+         * @param callback
+         */
+        updateLocation: function(position, country, success, errors){
+
+            $.ajax({
+                type: "PUT",
+                url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/location',
+                data: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    country: country
+                },
+                dataType: 'json'
+            }).done(function( msg ) {
+                success({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    country: country
+                });
+            }.bind(this))
+            .fail(function( msg ) {
+                errors(null);
+            }.bind(this));
+
+        },
+
+        getDeviceCountry: function(position, callback){
+
+            $.ajax({
+                type: "GET",
+                url: 'http://maps.googleapis.com/maps/api/geocode/json',
+                data: {
+                    latlng: position.coords.latitude + ',' + position.coords.longitude,
+                    sensor: false
+                }
+            }).done(function( msg ) {
+
+                if(msg.status === 'OK' && msg.results && msg.results.length > 0){
+
+                    callback({
+                        country: msg.results[msg.results.length - 1].address_components[0].short_name
+                    });
+                } else {
+                    callback({
+                        country: null
+                    });
+                }
+
+            }.bind(this))
+            .fail(function( msg ) {
+                callback({
+                    country: null
+                });
+            }.bind(this));
+
         },
         /**
          * Register a reply
          * @param notification
          * @param data
          */
-        reply: function (notification, data) {
-            $.ajax({
-                type: "POST",
-                url: this.options.apiUrl + '/replies',
-                data: {
-                    userID: this.options.userId,
-                    deviceID: this.getCookie('uuid'),
-                    notification: notification,
-                    data: data
-                },
-                dataType: 'json'
-            }).done(function( msg ) {
-                this.log('Notificare: Reply Registered');
-            }.bind(this))
-            .fail(function( msg ) {
-                this.log('Notificare: Failed to register reply');
-            }.bind(this));
+        reply: function (notification, data, success, errors) {
+
+            if (this.getCookie('uuid')) {
+                $.ajax({
+                    type: "POST",
+                    url: this.options.apiUrl + '/replies',
+                    data: {
+                        userID: this.options.userId,
+                        deviceID: this.getCookie('uuid'),
+                        notification: notification,
+                        data: data
+                    },
+                    dataType: 'json'
+                }).done(function (msg) {
+                    this.log('Notificare: Reply Registered');
+                }.bind(this))
+                .fail(function (msg) {
+                    errors('Notificare: Failed to register reply');
+                }.bind(this));
+            } else {
+                errors("Notificare: Calling reply before registering a deviceId");
+            }
         }
     };
 
