@@ -47,6 +47,13 @@
             this.maxReconnectTimeout = 60000;
             this.allowedNotifications = false;
 
+
+            if(typeof(Storage) !== "undefined") {
+                if(!localStorage.getItem("regions")){
+                    localStorage.setItem("regions", JSON.stringify([]));
+                }
+            }
+
             var _this = this;
 
             this.logEvent({
@@ -639,9 +646,17 @@
                 if (navigator.geolocation) {
                     navigator.geolocation.watchPosition(function(position){
 
-                        _this.getDeviceCountry(position, function(data){
+                        _this._getDeviceCountry(position, function(data){
                             _this.updateLocation(position, data.country, function(data){
-                                success(data);
+
+                                _this._getNearestRegions(position, function(regions){
+                                    _this._handleRegions(position, regions);
+                                    success(data);
+                                }, function(errors){
+
+                                });
+
+
                             }, function(){
                                 errors("Notificare: Failed to update device location");
                             });
@@ -663,7 +678,7 @@
                                 errors("Notificare: An unknown location error occurred");
                                 break;
                         }
-                    });
+                    }, this.options.geolocationOptions);
                 } else {
                     errors("Notificare: Browser does not support Geolocation API");
                 }
@@ -692,7 +707,7 @@
 
             $.ajax({
                 type: "PUT",
-                url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/location',
+                url: this.options.apiUrl + '/devices/' + this.getCookie('uuid'),
                 data: {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
@@ -712,12 +727,94 @@
 
         },
 
+        _handleRegions: function(position, regions){
+
+            var _this = this;
+            $.each( regions, function( index, region ){
+                var localRegions = JSON.parse(localStorage.getItem("regions"));
+                if(_this._calculateDistanceBetweenPoints(position, region) <= region.distance){
+
+                    if($.inArray(region._id, localRegions) == -1){
+                        _this._trigger("re.notifica.trigger.region.Enter", region, function(data){
+                            localRegions.push(region._id);
+                            localStorage.setItem("regions", JSON.stringify(localRegions));
+                        }, function(errors){
+
+                        });
+                    }
+                } else {
+
+                    var i = $.inArray(region._id, localRegions);
+                    if(i > -1){
+                        _this._trigger("re.notifica.trigger.region.Exit", region, function(data){
+                            localRegions.splice(i, 1);
+                            localStorage.setItem("regions", JSON.stringify(localRegions));
+                        }, function(errors){
+
+                        });
+                    }
+                }
+            });
+
+        },
+        /**
+         * Get nearest regions
+         * @param position
+         * @param success
+         * @param errors
+         * @private
+         */
+        _getNearestRegions: function(position, success, errors){
+
+            $.ajax({
+                type: "GET",
+                url: this.options.apiUrl + '/regions/bylocation/' + position.coords.latitude + '/' + position.coords.longitude,
+                data: null
+            }).done(function( msg ) {
+                success(msg.regions);
+            }.bind(this))
+            .fail(function( msg ) {
+                errors('Notificare: Failed to retrieve nearest regions');
+            }.bind(this));
+
+        },
+
+        /**
+         * Calculate distance between 2 points
+         * @param position
+         * @param region
+         * @returns {number}
+         * @private
+         */
+        _calculateDistanceBetweenPoints: function(position, region){
+
+            var lat1 = position.coords.latitude;
+            var lat2 = region.geometry.coordinates[1];
+            var lon1 = position.coords.longitude;
+            var lon2 = region.geometry.coordinates[0];
+            var R = 6371000; // metres
+            var _r1 = lat1 * Math.PI / 180;
+            var _r2 = lat2 * Math.PI / 180;
+            var _a1 = (lat2-lat1) * Math.PI / 180;
+            var _a2 = (lon2-lon1) * Math.PI / 180;
+
+            var a = Math.sin(_a1/2) * Math.sin(_a1/2) +
+                Math.cos(_r1) * Math.cos(_r2) *
+                Math.sin(_a2/2) * Math.sin(_a2/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            var d = R * c;
+
+            return d;
+
+        },
+
         /**
          * Get a device country by lat and lng
          * @param position
          * @param callback
          */
-        getDeviceCountry: function(position, callback){
+        _getDeviceCountry: function(position, callback){
 
             $.ajax({
                 type: "GET",
@@ -766,7 +863,7 @@
                     },
                     dataType: 'json'
                 }).done(function (msg) {
-                    this.log('Notificare: Reply Registered');
+                    success(msg);
                 }.bind(this))
                 .fail(function (msg) {
                     errors('Notificare: Failed to register reply');
@@ -774,6 +871,25 @@
             } else {
                 errors("Notificare: Calling reply before registering a deviceId");
             }
+        },
+
+        _trigger: function (type, region, success, errors) {
+
+            $.ajax({
+                type: "POST",
+                url: this.options.apiUrl + '/triggers/' + type,
+                data: {
+                    region: region._id,
+                    deviceID: this.getCookie('uuid')
+                },
+                dataType: 'json'
+            }).done(function (msg) {
+                success(msg);
+            }.bind(this))
+            .fail(function (msg) {
+                errors('Notificare: Failed to trigger region');
+            }.bind(this));
+
         }
     };
 

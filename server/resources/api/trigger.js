@@ -18,11 +18,11 @@ TriggerResource.prototype = {
 			host: app.set('push').host
 		});
 		return express.Router()
-			.post('/forregion/:type', this.routes.triggerForRegion.bind(this));
+			.post('/:type', this.routes.trigger.bind(this));
 	},
 	
 	routes: {
-		triggerForRegion: function(request, response, next) {
+		trigger: function(request, response, next) {
 			this.adapter.post('/trigger/:type', {
 				type: request.params.type
 			}, null, request.body, {

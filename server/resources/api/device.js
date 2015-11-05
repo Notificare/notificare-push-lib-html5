@@ -22,7 +22,6 @@ DeviceResource.prototype = {
 			.post('/', this.routes.create.bind(this))
 			.put('/:id', this.routes.update.bind(this))
 			.get('/:id/tags', this.routes.index.bind(this))
-			.put('/:id/location', this.routes.updateLocation.bind(this))
 			.put('/:id/cleartags', this.routes.clearTags.bind(this))
 			.put('/:id/removetag', this.routes.removeTag.bind(this))
 			.put('/:id/addtags', this.routes.addTags.bind(this));
@@ -124,26 +123,6 @@ DeviceResource.prototype = {
 		
 		removeTag: function(request, response, next) {
 			this.adapter.put('/device/:id/removetag', {
-				id: request.params.id
-			}, null, request.body, {
-				auth: {
-					username: this.app.set('notificare').key,
-					password: this.app.set('notificare').secret
-				}
-			}, function(err, clientResponse, body) {
-				if (err) {
-					next(err);
-				} else if (clientResponse.statusCode >= 400) {
-					response.status(clientResponse.statusCode).send(body.error);
-				} else {
-					response.status(200).send(body);
-				}
-			}.bind(this));
-		},
-
-
-		updateLocation: function(request, response, next) {
-			this.adapter.put('/device/:id', {
 				id: request.params.id
 			}, null, request.body, {
 				auth: {
