@@ -1,21 +1,10 @@
 {
-	"name": "notificare-api-wrapper",
-	"description": "Notificare REST API",
-	"version": "1.5.1",
-	"private": true,
-	"dependencies": {
-	  "express": "^4.8.0",
-	  "body-parser": "^1.6.0",
-	  "cookie-parser": "^1.3.2",
-	  "multiparty": "^3.3.1",
-	  "morgan": "^1.2.2",
-	  "connect-redis": "^2.0",
-	  "hiredis":"^0.1.17",
-	  "debug": "^1.0.4",
-	  "request": "^2.39",
-	  "openssl-wrapper": "^0.2",
-	  "string": "^1.9",
-	  "async": "^0.9.0",
-	  "twitter": "^0.2"
-	}
+  "name": "notificare-push-lib-html5",
+  "description": "Notificare HTML 5 SDK server",
+  "version": "1.6.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.8.0",
+    "morgan": "^1.2.2"
+  }
 }

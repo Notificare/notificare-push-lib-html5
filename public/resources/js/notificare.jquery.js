@@ -1,10 +1,10 @@
 /*
- *  Notificare JS for jQuery - v1.1.0
+ *  Notificare JS for jQuery - v1.6.0
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
  *  @author Joel Oliveira joel@notifica.re
- *  copyright 2013 Notificare
+ *  copyright 2015 Notificare
  */
 
 ;(function ( $, window, document, undefined ) {
@@ -13,7 +13,7 @@
     var pluginName = "notificare",
         defaults = {
             sdkVersion: '1.6.0',
-            apiUrl: "/api",
+            apiUrl: "https://cloud.notifica.re/api",
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             wssUrl: "wss://websocket.notifica.re",
             protocols: ['notificare-push'],
@@ -95,12 +95,12 @@
 
                 if (data.permission == 'default') {
 
-                    window.safari.pushNotification.requestPermission( _this.options.websitePushUrl, _this.options.pushId, {applicationKey: _this.options.appKey}, function() {
+                    window.safari.pushNotification.requestPermission( this.options.websitePushUrl, this.options.pushId, {applicationKey: this.options.appKey}, function() {
 
                         if(data.deviceToken){
-                            $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
-                            _this.allowedNotifications = true;
-                            _this.logEvent({
+                            $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
+                            this.allowedNotifications = true;
+                            this.logEvent({
                                 sessionID: _this.uniqueId,
                                 type: 're.notifica.event.application.Install'
                             },  function(data){
@@ -115,14 +115,14 @@
                             }
                         }
 
-                    });
+                    }.bind(this));
                 } else if (data.permission == 'denied') {
                     if(this.options.allowSilent){
                         this.setSocket();
                     }
                 } else if (data.permission == 'granted') {
-                    _this.allowedNotifications = true;
-                    $(_this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
+                    this.allowedNotifications = true;
+                    $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                 }
 
             } else {
@@ -135,9 +135,9 @@
                     if (Notification.permission === 'default') {
 
                         Notification.requestPermission(function () {
-                            _this.allowedNotifications = true;
-                            _this.setSocket();
-                        });
+                            this.allowedNotifications = true;
+                            this.setSocket();
+                        }.bind(this));
 
 
                     } else if (Notification.permission === 'granted') {
@@ -163,19 +163,19 @@
                         window.webkitNotifications.requestPermission(function(e){
 
                             if(window.webkitNotifications.checkPermission() == 1){
-                                if(_this.options.allowSilent){
-                                    _this.setSocket();
+                                if(this.options.allowSilent){
+                                    this.setSocket();
                                 }
                             } else if(window.webkitNotifications.checkPermission() == 2){
-                                if(_this.options.allowSilent){
-                                    _this.setSocket();
+                                if(this.options.allowSilent){
+                                    this.setSocket();
                                 }
                             } else {
-                                _this.allowedNotifications = true;
-                                _this.setSocket();
+                                this.allowedNotifications = true;
+                                this.setSocket();
                             }
 
-                        });
+                        }.bind(this));
                     }
 
                     //Legacy mozilla browsers
@@ -187,18 +187,18 @@
                     }else{
                         navigator.mozNotification.requestPermission(function(e){
                             if(navigator.mozNotification.checkPermission() == 1){
-                                if(_this.options.allowSilent){
-                                    _this.setSocket();
+                                if(this.options.allowSilent){
+                                    this.setSocket();
                                 }
                             } else if(navigator.mozNotification.checkPermission() == 2){
-                                if(_this.options.allowSilent){
-                                    _this.setSocket();
+                                if(this.options.allowSilent){
+                                    this.setSocket();
                                 }
                             } else {
-                                _this.allowedNotifications = true;
-                                _this.setSocket();
+                                this.allowedNotifications = true;
+                                this.setSocket();
                             }
-                        });
+                        }.bind(this));
                     }
                 } else {
                     if(this.options.allowSilent){
@@ -287,17 +287,14 @@
             }
             this.log('Reconnection in ' + this.reconnectTimeout + ' milliseconds');
 
-            var _this = this;
             setTimeout(function() {
-                _this.setSocket();
-            }, this.reconnectTimeout);
+                this.setSocket();
+            }.bind(this), this.reconnectTimeout);
         },
         /**
          *
          */
         setSocket: function () {
-
-            var _this = this;
 
             if ("WebSocket" in window){
 
@@ -305,11 +302,11 @@
 
                 //On OPEN
                 connection.onopen = function () {
-                    if(_this.getCookie('uuid')){
-                        connection.send(JSON.stringify({"command":"register", "uuid" : _this.getCookie('uuid')}));
+                    if(this.getCookie('uuid')){
+                        connection.send(JSON.stringify({"command":"register", "uuid" : this.getCookie('uuid')}));
                     }else{
-                        _this.logEvent({
-                            sessionID: _this.uniqueId,
+                        this.logEvent({
+                            sessionID: this.uniqueId,
                             type: 're.notifica.event.application.Install'
                         },  function(data){
 
@@ -319,29 +316,29 @@
                         connection.send(JSON.stringify({"command":"register"}));
                     }
 
-                }
+                }.bind(this);
 
                 //On MESSAGE
                 connection.onmessage = function (message) {
                     if (message.data) {
                         var data = JSON.parse(message.data);
                         if (data.registration) {
-                            $(_this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
+                            $(this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
                         } else if (data.notification) {
-                            _this.getNotification(data.notification);
+                            this.getNotification(data.notification);
                         }
                     }
-                }
+                }.bind(this);
 
                 //On ERROR
                 connection.onerror = function (e) {
-                    _this.reconnect();
-                };
+                    this.reconnect();
+                }.bind(this);
 
                 //On CLOSE
                 connection.onclose = function (e) {
-                    _this.reconnect();
-                };
+                    this.reconnect();
+                }.bind(this);
 
             } else {
                 this.log('Notificare: Browser doesn\'t support websockets');
@@ -359,13 +356,15 @@
          */
         registerDevice: function (uuid) {
             var d = new Date();
-            var _this = this;
 
-            _this.setCookie(uuid);
+            this.setCookie(uuid);
 
             $.ajax({
                 type: "POST",
-                url: this.options.apiUrl + '/devices',
+                url: this.options.apiUrl + '/device',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
                 data: {
                     auth_token: this.options.token,
                     deviceID : uuid,
@@ -381,10 +380,10 @@
                 },
                 dataType: 'json'
             }).done(function( msg ) {
-                $(_this.element).trigger("notificare:didRegisterDevice", uuid);
-            }).fail(function( msg ) {
-                $(_this.element).trigger("notificare:didFailToRegisterDevice", uuid);
-            });
+                $(this.element).trigger("notificare:didRegisterDevice", uuid);
+            }.bind(this)).fail(function( msg ) {
+                $(this.element).trigger("notificare:didFailToRegisterDevice", uuid);
+            }.bind(this));
         },
         /**
          * Get notification
@@ -404,46 +403,48 @@
 
             });
 
-            $(this.element).element.trigger("notificare:didReceiveNotification", notification);
-
-            var _this = this;
+            $(this.element).trigger("notificare:didReceiveNotification", notification);
 
             $.ajax({
                 type: "GET",
-                url: this.options.apiUrl + '/notifications/' + notification.id
+                url: this.options.apiUrl + '/notification/' + notification.id,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this)
             }).done(function( msg ) {
-                if(_this.allowedNotifications){
-                    _this.showNotification(msg);
+                if(this.allowedNotifications){
+                    this.showNotification(msg);
                 }
-            }).fail(function( msg ) {
-                _this.getNotification(notification);
-            });
+            }.bind(this)).fail(function( msg ) {
+                this.getNotification(notification);
+            }.bind(this));
 
         },
 
         openNotification: function (notification) {
 
-            var _this = this;
-
             $.ajax({
                 type: "GET",
-                url: this.options.apiUrl + '/notifications/' + notification.id
+                url: this.options.apiUrl + '/notification/' + notification.id,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this)
             }).done(function( msg ) {
-                $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
-                _this.logEvent({
-                    sessionID: _this.uniqueId,
+                $(this.element).trigger("notificare:didOpenNotification", msg.notification);
+                this.logEvent({
+                    sessionID: this.uniqueId,
                     type: 're.notifica.event.notification.Open',
                     notification: msg.notification.id,
-                    userID: _this.options.userId || null,
-                    deviceID: _this.getCookie('uuid')
+                    userID: this.options.userId || null,
+                    deviceID: this.getCookie('uuid')
                 },  function(data){
 
                 }, function(error){
 
                 });
-            }).fail(function( msg ) {
-                _this.openNotification(notification);
-            });
+            }.bind(this)).fail(function( msg ) {
+                this.openNotification(notification);
+            }.bind(this));
 
         },
 
@@ -452,8 +453,6 @@
          * @param msg
          */
         showNotification: function (msg) {
-
-            var _this = this;
 
             if ("Notification" in window) {
                 var n = new Notification(
@@ -466,26 +465,26 @@
                 );
                 // remove the notification from Notification Center when it is clicked
                 n.onclick = function () {
-                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
-                    _this._logNotificationEvents(msg);
-                    this.close();
-                };
+                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
+                    this._logNotificationEvents(msg);
+                    n.close();
+                }.bind(this);
 
             } else if ("webkitNotifications" in window) {
                 var n = window.webkitNotifications.createNotification('/favicon.ico', this.options.appName, msg.notification.message);
                 n.show();
                 n.onclick = function () {
-                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
-                    _this._logNotificationEvents(msg);
-                };
+                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
+                    this._logNotificationEvents(msg);
+                }.bind(this);
 
             } else if ("mozNotification" in navigator) {
                 var n = navigator.mozNotification.createNotification(this.options.appName, msg.notification.message, '/favicon.ico');
                 n.show();
                 n.onclick = function () {
-                    $(_this.element).element.trigger("notificare:didOpenNotification", msg.notification);
-                    _this._logNotificationEvents(msg);
-                };
+                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
+                    this._logNotificationEvents(msg);
+                }.bind(this);
             }
 
         },
@@ -529,7 +528,10 @@
         logEvent: function (data, success, errors) {
             $.ajax({
                 type: "POST",
-                url: this.options.apiUrl + '/events',
+                url: this.options.apiUrl + '/event',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
                 data: data,
                 dataType: 'json'
             }).done(function( msg ) {
@@ -548,7 +550,10 @@
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/tags'
+                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/tags',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
                 }).done(function( msg ) {
                     success(msg.tags);
                 }.bind(this))
@@ -569,7 +574,10 @@
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/addtags',
+                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/addtags',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
                     data: {
                         tags: data
                     },
@@ -595,7 +603,10 @@
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/removetag',
+                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/removetag',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
                     data: {
                         tag: data
                     },
@@ -620,7 +631,10 @@
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/devices/' + this.getCookie('uuid') + '/cleartags',
+                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/cleartags',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
                     data: null,
                     dataType: 'json'
                 }).done(function( msg ) {
@@ -646,24 +660,24 @@
                 if (navigator.geolocation) {
                     navigator.geolocation.watchPosition(function(position){
 
-                        _this._getDeviceCountry(position, function(data){
-                            _this.updateLocation(position, data.country, function(data){
+                        this._getDeviceCountry(position, function(data){
+                            this.updateLocation(position, data.country, function(data){
 
-                                _this._getNearestRegions(position, function(regions){
-                                    _this._handleRegions(position, regions);
+                                this._getNearestRegions(position, function(regions){
+                                    this._handleRegions(position, regions);
                                     success(data);
-                                }, function(errors){
+                                }.bind(this), function(errors){
 
                                 });
 
 
-                            }, function(){
+                            }.bind(this), function(){
                                 errors("Notificare: Failed to update device location");
                             });
-                        });
+                        }.bind(this));
 
 
-                    }, function(error){
+                    }.bind(this), function(error){
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
                                 errors("Notificare: User denied the request for Geolocation");
@@ -707,7 +721,10 @@
 
             $.ajax({
                 type: "PUT",
-                url: this.options.apiUrl + '/devices/' + this.getCookie('uuid'),
+                url: this.options.apiUrl + '/device/' + this.getCookie('uuid'),
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
                 data: {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
@@ -729,13 +746,12 @@
 
         _handleRegions: function(position, regions){
 
-            var _this = this;
             $.each( regions, function( index, region ){
                 var localRegions = JSON.parse(localStorage.getItem("regions"));
-                if(_this._calculateDistanceBetweenPoints(position, region) <= region.distance){
+                if(this._calculateDistanceBetweenPoints(position, region) <= region.distance){
 
                     if($.inArray(region._id, localRegions) == -1){
-                        _this._trigger("re.notifica.trigger.region.Enter", region, function(data){
+                        this._trigger("re.notifica.trigger.region.Enter", region, function(data){
                             localRegions.push(region._id);
                             localStorage.setItem("regions", JSON.stringify(localRegions));
                         }, function(errors){
@@ -746,7 +762,7 @@
 
                     var i = $.inArray(region._id, localRegions);
                     if(i > -1){
-                        _this._trigger("re.notifica.trigger.region.Exit", region, function(data){
+                        this._trigger("re.notifica.trigger.region.Exit", region, function(data){
                             localRegions.splice(i, 1);
                             localStorage.setItem("regions", JSON.stringify(localRegions));
                         }, function(errors){
@@ -754,7 +770,7 @@
                         });
                     }
                 }
-            });
+            }.bind(this));
 
         },
         /**
@@ -768,7 +784,10 @@
 
             $.ajax({
                 type: "GET",
-                url: this.options.apiUrl + '/regions/bylocation/' + position.coords.latitude + '/' + position.coords.longitude,
+                url: this.options.apiUrl + '/region/bylocation/' + position.coords.latitude + '/' + position.coords.longitude,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
                 data: null
             }).done(function( msg ) {
                 success(msg.regions);
@@ -854,7 +873,10 @@
             if (this.getCookie('uuid')) {
                 $.ajax({
                     type: "POST",
-                    url: this.options.apiUrl + '/replies',
+                    url: this.options.apiUrl + '/reply',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
                     data: {
                         userID: this.options.userId,
                         deviceID: this.getCookie('uuid'),
@@ -877,7 +899,10 @@
 
             $.ajax({
                 type: "POST",
-                url: this.options.apiUrl + '/triggers/' + type,
+                url: this.options.apiUrl + '/trigger/' + type,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
                 data: {
                     region: region._id,
                     deviceID: this.getCookie('uuid')

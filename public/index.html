@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<title>My App</title>
+		<meta name="viewport" content="width=device-width">
+		<link rel="apple-touch-icon-precomposed" sizes="144x144" href="apple-touch-icon.png">
+		<link rel="apple-touch-icon-precomposed" sizes="114x114" href="apple-touch-icon.png">
+		<link rel="apple-touch-icon-precomposed" sizes="72x72" href="apple-touch-icon.png">
+		<link rel="apple-touch-icon-precomposed" href="apple-touch-icon.png">
+		<link rel="shortcut icon" href="favicon.ico">
+
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	</head>
+	<body>
+		<section id="myapp">
+			<div class="container">
+				<!-- Static navbar -->
+				<div class="navbar navbar-default" role="navigation">
+					<div class="container-fluid">
+						<div class="navbar-header">
+							<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+								<span class="sr-only">Toggle navigation</span>
+								<span class="icon-bar"></span>
+								<span class="icon-bar"></span>
+								<span class="icon-bar"></span>
+							</button>
+							<a class="navbar-brand" href="http://notifica.re">Project name</a>
+						</div>
+						<div class="navbar-collapse collapse">
+							<ul class="nav navbar-nav">
+								<li class="active"><a href="#">Link</a></li>
+								<li><a href="#">Link</a></li>
+								<li><a href="#">Link</a></li>
+								<li class="dropdown">
+									<a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+									<ul class="dropdown-menu">
+										<li><a href="#">Action</a></li>
+										<li><a href="#">Another action</a></li>
+										<li><a href="#">Something else here</a></li>
+										<li class="divider"></li>
+										<li class="dropdown-header">Nav header</li>
+										<li><a href="#">Separated link</a></li>
+										<li><a href="#">One more separated link</a></li>
+									</ul>
+								</li>
+							</ul>
+							<ul class="nav navbar-nav navbar-right">
+								<li class="active"><a href="../">Default</a></li>
+								<li><a href="../navbar-static-top/">Static top</a></li>
+								<li><a href="../navbar-fixed-top/">Fixed top</a></li>
+							</ul>
+						</div><!--/.nav-collapse -->
+					</div><!--/.container-fluid -->
+				</div>
+			</div> <!-- /container -->
+		</section>
+		<script src="/resources/js/jquery.js"></script>
+		<script src="/resources/js/ua-parser.min.js"></script>
+        <script src="/resources/js/notificare.jquery.js"></script>
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+		<script>
+			$(function() {
+				var options = {
+					appName: 'Notificare HTML5 JS SDK',
+					allowSilent: true,
+					appVersion: '1.0',
+					appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
+					appSecret: '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854',
+					pushId: 'web.re.notifica.html5sdk',
+					geolocationOptions: {
+						timeout: 60000,
+						enableHighAccuracy: true,
+						maximumAge: Infinity
+					}
+				};
+
+				var instance = $('#myapp').notificare(options);
+
+				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
+					//instance.notificare("userId","userID");
+					//instance.notificare("username","userName");
+					instance.notificare("registerDevice",data);
+				});
+
+				$("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
+					//Here it's safe to register tags
+					instance.notificare("getTags", function(tags){
+						console.log(tags);
+					}, function(error){
+						console.log(error);
+					});
+					instance.notificare("startLocationUpdates", function(data){
+						console.log(data);
+					}, function(error){
+						console.log(error);
+					});
+				});
+
+				$("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
+					//instance.notificare("registerDevice",data);
+				});
+
+				$("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
+					// data will be the minimized notification object
+				});
+
+				$("#myapp").bind("notificare:didOpenNotification", function(event, data) {
+					// data will be the full notification object
+				});
+			});
+		</script>
+	</body>
+</html>

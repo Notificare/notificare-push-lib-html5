@@ -1,70 +1,30 @@
-// # Notificare Push Library for WebSockets
-// ## Main Node file
-// Set the following environment variables to use:
-//
-// - NOTIFICARE_KEY		Get your Application Key from Notificare Dashboard
-// - NOTIFICARE_SECRET	Get your Application Secret from Notificare Dashboard
+// Notificare Push Library for HTML5
+// Check public/index.html for implementation
+// This express app is solely used for local development
+// Copy the contents of /public to your web server for production environment
 
-// ## Imports
 var express = require('express'),
-	cookieParser = require('cookie-parser'),
-	bodyParser = require('body-parser'),
-	morgan = require('morgan'),
-	API = require('./server/resources/api');
+    morgan = require('morgan');
 
 //Create an ExpressJS app
 var app = express();
 
-
-var env = process.env.NODE_ENV || 'development';
-if ('development' == env) {
-	app.enable('trust proxy');
-	app.set('push', {
-		protocol: 'https',
-		host: 'push.notifica.re'
-	});
-	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
-		secret: process.env.NOTIFICARE_SECRET || '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854'
-	});
-} else {
-	app.enable('trust proxy');
-	app.set('push', {
-		protocol: 'https',
-		host: 'push.notifica.re'
-	});
-	app.set('notificare', {
-		key: process.env.NOTIFICARE_KEY || '',
-		secret: process.env.NOTIFICARE_SECRET || ''
-	});
-}
-
 // Middleware
 app.use(morgan(':remote-addr - - [:date] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
-app.use(cookieParser());
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
-app.use(express.static(__dirname + '/client/build'));
-app.use(function(req, res, next) {
-	req.language = req.acceptsLanguages[0] || 'en';
-	next();
-});
-
-// Map routes to resource namespaces, pass along the Express app instance
-app.use('/api', new API().attach(app));
+app.use(express.static(__dirname + '/public'));
 
 //Generic error handler
 app.use(function(err, request, response, next) {
-	console.log('%s [ERROR] %s', Date(), err.message);
-	if (err.status && err.status < 500) {
-		response.status(err.status).send({error: err.message});
-	} else {
-		response.status(500).send({error: 'Fail whale'});
-	}
+    console.log('%s [ERROR] %s', Date(), err.message);
+    if (err.status && err.status < 500) {
+        response.status(err.status).send({error: err.message});
+    } else {
+        response.status(500).send({error: 'Fail whale'});
+    }
 });
 
 // Ready to go, start the bunker!
 var port = process.env.PORT || 3333;
 app.listen(port, function() {
-	console.log("%s [INFO] Listening on %s", Date(), port);
+    console.log("%s [INFO] Listening on %s", Date(), port);
 });
