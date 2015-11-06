@@ -54,8 +54,6 @@
                 }
             }
 
-            var _this = this;
-
             this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.application.Open'
@@ -68,13 +66,13 @@
             window.onbeforeunload = function() {
 
                 var t2 = new Date(),
-                    t1 = _this.sessionDate,
+                    t1 = this.sessionDate,
                     dif = t1.getTime() - t2.getTime(),
                     timedif = dif / 1000,
                     seconds = Math.abs(timedif);
 
-                _this.logEvent({
-                    sessionID: _this.uniqueId,
+                this.logEvent({
+                    sessionID: this.uniqueId,
                     type: 're.notifica.event.application.Close',
                     data: {
                         length: seconds
@@ -86,12 +84,12 @@
                 });
 
                 return 'Leaving this page will prevent notifications from being received.';
-            };
+            }.bind(this);
 
             // Safari Website Push
-            if ('safari' in window && 'pushNotification' in window.safari && _this.options.pushId) {
+            if ('safari' in window && 'pushNotification' in window.safari && this.options.pushId) {
 
-                var data = window.safari.pushNotification.permission(_this.options.pushId);
+                var data = window.safari.pushNotification.permission(this.options.pushId);
 
                 if (data.permission == 'default') {
 
@@ -101,7 +99,7 @@
                             $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                             this.allowedNotifications = true;
                             this.logEvent({
-                                sessionID: _this.uniqueId,
+                                sessionID: this.uniqueId,
                                 type: 're.notifica.event.application.Install'
                             },  function(data){
 
@@ -325,7 +323,7 @@
                         if (data.registration) {
                             $(this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
                         } else if (data.notification) {
-                            this.getNotification(data.notification);
+                            this._getNotification(data.notification);
                         }
                     }
                 }.bind(this);
@@ -386,10 +384,11 @@
             }.bind(this));
         },
         /**
-         * Get notification
+         * Get a notification object
          * @param notification
+         * @private
          */
-        getNotification: function (notification) {
+        _getNotification: function (notification) {
 
             this.logEvent({
                 sessionID: this.uniqueId,
@@ -416,7 +415,9 @@
                     this.showNotification(msg);
                 }
             }.bind(this)).fail(function( msg ) {
-                this.getNotification(notification);
+                setTimeout(function() {
+                    this._getNotification(notification);
+                }.bind(this), 2000);
             }.bind(this));
 
         },
@@ -443,7 +444,9 @@
 
                 });
             }.bind(this)).fail(function( msg ) {
-                this.openNotification(notification);
+                setTimeout(function() {
+                    this.openNotification(notification);
+                }.bind(this), 2000);
             }.bind(this));
 
         },
@@ -460,7 +463,7 @@
                     {
                         'body': msg.notification.message,
                         'tag': msg.notification.id,
-                        'icon': '/favicon.ico'
+                        'icon': this.options.icon
                     }
                 );
                 // remove the notification from Notification Center when it is clicked
@@ -652,8 +655,6 @@
          * Start Location Updates
          */
         startLocationUpdates: function (success, errors) {
-
-            var _this = this;
 
             if (this.getCookie('uuid')) {
 
