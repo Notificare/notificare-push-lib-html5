@@ -31,44 +31,33 @@
 						</div>
 						<div class="navbar-collapse collapse">
 							<ul class="nav navbar-nav">
-								<li class="active"><a href="#">Link</a></li>
-								<li><a href="#">Link</a></li>
-								<li><a href="#">Link</a></li>
-								<li class="dropdown">
-									<a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-									<ul class="dropdown-menu">
-										<li><a href="#">Action</a></li>
-										<li><a href="#">Another action</a></li>
-										<li><a href="#">Something else here</a></li>
-										<li class="divider"></li>
-										<li class="dropdown-header">Nav header</li>
-										<li><a href="#">Separated link</a></li>
-										<li><a href="#">One more separated link</a></li>
-									</ul>
-								</li>
-							</ul>
-							<ul class="nav navbar-nav navbar-right">
-								<li class="active"><a href="../">Default</a></li>
-								<li><a href="../navbar-static-top/">Static top</a></li>
-								<li><a href="../navbar-fixed-top/">Fixed top</a></li>
+								<li class="active"><a href="#">Item 1</a></li>
+								<li><a href="#">Item 2</a></li>
+								<li><a href="#">Item 3</a></li>
 							</ul>
 						</div><!--/.nav-collapse -->
 					</div><!--/.container-fluid -->
 				</div>
+				<div class="jumbotron">
+					<h1>My Banner</h1>
+					<p>Quickly bootstrap your html project</p>
+					<p>
+						<a class="btn btn-lg btn-primary" href="#" role="button">More Info</a>
+					</p>
+				</div>
 			</div> <!-- /container -->
 		</section>
-		<script src="/resources/js/jquery.js"></script>
-		<script src="/resources/js/ua-parser.min.js"></script>
+		<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/UAParser.js/0.7.9/ua-parser.min.js"></script>
         <script src="/resources/js/notificare.jquery.min.js"></script>
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 		<script>
 			$(function() {
 				var options = {
-					appName: 'Notificare HTML5 JS SDK',
-					allowSilent: true,
 					appVersion: '1.0',
 					appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
 					appSecret: '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854',
+					allowSilent: true,
 					pushId: 'web.re.notifica.html5sdk',
 					icon: '/favicon.ico',
 					geolocationOptions: {
@@ -79,6 +68,10 @@
 				};
 
 				var instance = $('#myapp').notificare(options);
+
+				$("#myapp").bind("notificare:onReady", function(event, data) {
+					instance.notificare("registerForNotifications");
+				});
 
 				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
 					//instance.notificare("userId","userID");

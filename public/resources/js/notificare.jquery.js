@@ -40,7 +40,7 @@
 
             this.placeholder = $(document.createElement('div'));
             this.placeholder.addClass('notificare');
-            this.uniqueId = this.getUniqueID();
+            this.uniqueId = this._getUniqueID();
             this.sessionDate = new Date();
             this.reconnectTimeout = 0;
             this.minReconnectTimeout = 1000;
@@ -53,6 +53,8 @@
                     localStorage.setItem("regions", JSON.stringify([]));
                 }
             }
+
+            this._getApplicationInfo();
 
             this.logEvent({
                 sessionID: this.uniqueId,
@@ -86,6 +88,11 @@
                 return 'Leaving this page will prevent notifications from being received.';
             }.bind(this);
 
+
+        },
+
+        registerForNotifications: function(){
+
             // Safari Website Push
             if ('safari' in window && 'pushNotification' in window.safari && this.options.pushId) {
 
@@ -109,14 +116,14 @@
 
                         } else {
                             if(this.options.allowSilent){
-                                this.setSocket();
+                                this._setSocket();
                             }
                         }
 
                     }.bind(this));
                 } else if (data.permission == 'denied') {
                     if(this.options.allowSilent){
-                        this.setSocket();
+                        this._setSocket();
                     }
                 } else if (data.permission == 'granted') {
                     this.allowedNotifications = true;
@@ -134,20 +141,20 @@
 
                         Notification.requestPermission(function () {
                             this.allowedNotifications = true;
-                            this.setSocket();
+                            this._setSocket();
                         }.bind(this));
 
 
                     } else if (Notification.permission === 'granted') {
                         this.allowedNotifications = true;
-                        this.setSocket();
+                        this._setSocket();
                     } else if (Notification.permission === 'denied') {
                         if(this.options.allowSilent){
-                            this.setSocket();
+                            this._setSocket();
                         }
                     } else {
                         if(this.options.allowSilent){
-                            this.setSocket();
+                            this._setSocket();
                         }
                     }
 
@@ -156,21 +163,21 @@
 
                     if (window.webkitNotifications.checkPermission() == 0) {
                         this.allowedNotifications = true;
-                        this.setSocket();
+                        this._setSocket();
                     } else {
                         window.webkitNotifications.requestPermission(function(e){
 
                             if(window.webkitNotifications.checkPermission() == 1){
                                 if(this.options.allowSilent){
-                                    this.setSocket();
+                                    this._setSocket();
                                 }
                             } else if(window.webkitNotifications.checkPermission() == 2){
                                 if(this.options.allowSilent){
-                                    this.setSocket();
+                                    this._setSocket();
                                 }
                             } else {
                                 this.allowedNotifications = true;
-                                this.setSocket();
+                                this._setSocket();
                             }
 
                         }.bind(this));
@@ -181,34 +188,32 @@
 
                     if (navigator.mozNotification.checkPermission() == 0) {
                         this.allowedNotifications = true;
-                        this.setSocket();
+                        this._setSocket();
                     }else{
                         navigator.mozNotification.requestPermission(function(e){
                             if(navigator.mozNotification.checkPermission() == 1){
                                 if(this.options.allowSilent){
-                                    this.setSocket();
+                                    this._setSocket();
                                 }
                             } else if(navigator.mozNotification.checkPermission() == 2){
                                 if(this.options.allowSilent){
-                                    this.setSocket();
+                                    this._setSocket();
                                 }
                             } else {
                                 this.allowedNotifications = true;
-                                this.setSocket();
+                                this._setSocket();
                             }
                         }.bind(this));
                     }
                 } else {
                     if(this.options.allowSilent){
-                        this.setSocket();
+                        this._setSocket();
                     }
                 }
             }
-
-
         },
         /**
-         * Get/Set option key
+         * Get/Set userId
          * @param key
          * @param val
          * @returns {*}
@@ -221,6 +226,12 @@
                 return this.options.userId;
             }
         },
+        /**
+         * Get/Set username
+         * @param key
+         * @param val
+         * @returns {*}
+         */
         username: function (val) {
             if (val) {
                 this.options.username = val;
@@ -232,21 +243,19 @@
          *
          */
         log: function(m) {
-            if(this.options.development){
-                console.log(m);
-            }
+            console.log(m);
         },
         /**
          *
          */
-        getUniqueID: function() {
+        _getUniqueID: function() {
             var id = new Date().getTime();
             return id;
         },
         /**
          *
          */
-        setCookie: function ( id ) {
+        _setCookie: function ( id ) {
             var expiration = new Date();
             expiration.setDate( expiration.getDate() + this.options.daysToExpire );
             var value = escape( id ) + ( ( this.options.daysToExpire == null ) ? "" : "; expires=" + expiration.toUTCString());
@@ -255,7 +264,7 @@
         /**
          *
          */
-        getCookie: function ( key ) {
+        _getCookie: function ( key ) {
             var cookie = document.cookie;
             var cookieStart = cookie.indexOf( " " + key + "=" );
             if ( cookieStart == -1 ) {
@@ -274,9 +283,10 @@
             return cookie;
         },
         /**
-         *
+         * Reconnect Websockets
+         * @private
          */
-        reconnect: function() {
+        _reconnect: function() {
             this.reconnectTimeout = this.reconnectTimeout * 2;
             if (this.reconnectTimeout < this.minReconnectTimeout) {
                 this.reconnectTimeout = this.minReconnectTimeout;
@@ -286,13 +296,14 @@
             this.log('Reconnection in ' + this.reconnectTimeout + ' milliseconds');
 
             setTimeout(function() {
-                this.setSocket();
+                this._setSocket();
             }.bind(this), this.reconnectTimeout);
         },
         /**
-         *
+         * Manage websockets connections
+         * @private
          */
-        setSocket: function () {
+        _setSocket: function () {
 
             if ("WebSocket" in window){
 
@@ -300,8 +311,8 @@
 
                 //On OPEN
                 connection.onopen = function () {
-                    if(this.getCookie('uuid')){
-                        connection.send(JSON.stringify({"command":"register", "uuid" : this.getCookie('uuid')}));
+                    if(this._getCookie('uuid')){
+                        connection.send(JSON.stringify({"command":"register", "uuid" : this._getCookie('uuid')}));
                     }else{
                         this.logEvent({
                             sessionID: this.uniqueId,
@@ -330,12 +341,12 @@
 
                 //On ERROR
                 connection.onerror = function (e) {
-                    this.reconnect();
+                    this._reconnect();
                 }.bind(this);
 
                 //On CLOSE
                 connection.onclose = function (e) {
-                    this.reconnect();
+                    this._reconnect();
                 }.bind(this);
 
             } else {
@@ -348,6 +359,28 @@
          */
 
         /**
+         * Get Application Info
+         * @private
+         */
+        _getApplicationInfo: function () {
+
+            $.ajax({
+                type: "GET",
+                url: this.options.apiUrl + '/application/info',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this)
+            }).done(function( msg ) {
+                this.applicationInfo = msg.application;
+                $(this.element).trigger("notificare:onReady", msg.application);
+            }.bind(this)).fail(function( msg ) {
+                setTimeout(function() {
+                    this._getApplicationInfo();
+                }.bind(this), 2000);
+            }.bind(this));
+
+        },
+        /**
          *
          * Register Device
          * @param uuid
@@ -355,7 +388,7 @@
         registerDevice: function (uuid) {
             var d = new Date();
 
-            this.setCookie(uuid);
+            this._setCookie(uuid);
 
             $.ajax({
                 type: "POST",
@@ -395,7 +428,7 @@
                 type: 're.notifica.event.notification.Receive',
                 notification: notification.id,
                 userID: this.options.userId || null,
-                deviceID: this.getCookie('uuid')
+                deviceID: this._getCookie('uuid')
             },  function(data){
 
             }, function(error){
@@ -437,7 +470,7 @@
                     type: 're.notifica.event.notification.Open',
                     notification: msg.notification.id,
                     userID: this.options.userId || null,
-                    deviceID: this.getCookie('uuid')
+                    deviceID: this._getCookie('uuid')
                 },  function(data){
 
                 }, function(error){
@@ -458,8 +491,9 @@
         showNotification: function (msg) {
 
             if ("Notification" in window) {
+
                 var n = new Notification(
-                    this.options.appName,
+                    this.applicationInfo.name,
                     {
                         'body': msg.notification.message,
                         'tag': msg.notification.id,
@@ -474,7 +508,7 @@
                 }.bind(this);
 
             } else if ("webkitNotifications" in window) {
-                var n = window.webkitNotifications.createNotification('/favicon.ico', this.options.appName, msg.notification.message);
+                var n = window.webkitNotifications.createNotification(this.options.icon, this.applicationInfo.name, msg.notification.message);
                 n.show();
                 n.onclick = function () {
                     $(this.element).trigger("notificare:didOpenNotification", msg.notification);
@@ -482,7 +516,7 @@
                 }.bind(this);
 
             } else if ("mozNotification" in navigator) {
-                var n = navigator.mozNotification.createNotification(this.options.appName, msg.notification.message, '/favicon.ico');
+                var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.icon);
                 n.show();
                 n.onclick = function () {
                     $(this.element).trigger("notificare:didOpenNotification", msg.notification);
@@ -502,7 +536,7 @@
                 type: 're.notifica.event.notification.Influenced',
                 notification: msg.notification.id,
                 userID: this.options.userId || null,
-                deviceID: this.getCookie('uuid')
+                deviceID: this._getCookie('uuid')
             },  function(data){
 
             }, function(error){
@@ -514,7 +548,7 @@
                 type: 're.notifica.event.notification.Open',
                 notification: msg.notification.id,
                 userID: this.options.userId || null,
-                deviceID: this.getCookie('uuid')
+                deviceID: this._getCookie('uuid')
             },  function(data){
 
             }, function(error){
@@ -550,10 +584,10 @@
          * @param errors
          */
         getTags: function (success, errors) {
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/tags',
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/tags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -574,10 +608,10 @@
          * @param errors
          */
         addTags: function (data, success, errors) {
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/addtags',
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/addtags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -603,10 +637,10 @@
          */
         removeTag: function (data, success, errors) {
 
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/removetag',
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/removetag',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -631,10 +665,10 @@
          */
         clearTags: function (success, errors) {
 
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this.getCookie('uuid') + '/cleartags',
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/cleartags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -656,46 +690,51 @@
          */
         startLocationUpdates: function (success, errors) {
 
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
 
-                if (navigator.geolocation) {
-                    navigator.geolocation.watchPosition(function(position){
+                if (this.applicationInfo.services && this.applicationInfo.services.locationServices) {
 
-                        this._getDeviceCountry(position, function(data){
-                            this.updateLocation(position, data.country, function(data){
+                    if (navigator.geolocation) {
+                        navigator.geolocation.watchPosition(function(position){
 
-                                this._getNearestRegions(position, function(regions){
-                                    this._handleRegions(position, regions);
-                                    success(data);
-                                }.bind(this), function(errors){
+                            this._getDeviceCountry(position, function(data){
+                                this.updateLocation(position, data.country, function(data){
 
+                                    this._getNearestRegions(position, function(regions){
+                                        this._handleRegions(position, regions);
+                                        success(data);
+                                    }.bind(this), function(errors){
+
+                                    });
+
+
+                                }.bind(this), function(){
+                                    errors("Notificare: Failed to update device location");
                                 });
+                            }.bind(this));
 
 
-                            }.bind(this), function(){
-                                errors("Notificare: Failed to update device location");
-                            });
-                        }.bind(this));
-
-
-                    }.bind(this), function(error){
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errors("Notificare: User denied the request for Geolocation");
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errors("Notificare: Location information is unavailable");
-                                break;
-                            case error.TIMEOUT:
-                                errors("Notificare: The request to get user location timed out");
-                                break;
-                            case error.UNKNOWN_ERROR:
-                                errors("Notificare: An unknown location error occurred");
-                                break;
-                        }
-                    }, this.options.geolocationOptions);
+                        }.bind(this), function(error){
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    errors("Notificare: User denied the request for Geolocation");
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    errors("Notificare: Location information is unavailable");
+                                    break;
+                                case error.TIMEOUT:
+                                    errors("Notificare: The request to get user location timed out");
+                                    break;
+                                case error.UNKNOWN_ERROR:
+                                    errors("Notificare: An unknown location error occurred");
+                                    break;
+                            }
+                        }, this.options.geolocationOptions);
+                    } else {
+                        errors("Notificare: Browser does not support Geolocation API");
+                    }
                 } else {
-                    errors("Notificare: Browser does not support Geolocation API");
+                    errors("Notificare: Your account does not support Location Services");
                 }
 
             } else {
@@ -707,8 +746,12 @@
          * Stop location updates
          */
         stopLocationUpdates: function(){
-            if (navigator.geolocation) {
-                navigator.geolocation.clearWatch();
+            if (this.applicationInfo.services && this.applicationInfo.services.locationServices) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.clearWatch();
+                }
+            } else {
+                this.log("Notificare: Your account does not support Location Services");
             }
         },
 
@@ -722,7 +765,7 @@
 
             $.ajax({
                 type: "PUT",
-                url: this.options.apiUrl + '/device/' + this.getCookie('uuid'),
+                url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
@@ -871,7 +914,7 @@
          */
         reply: function (notification, data, success, errors) {
 
-            if (this.getCookie('uuid')) {
+            if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "POST",
                     url: this.options.apiUrl + '/reply',
@@ -880,7 +923,7 @@
                     }.bind(this),
                     data: {
                         userID: this.options.userId,
-                        deviceID: this.getCookie('uuid'),
+                        deviceID: this._getCookie('uuid'),
                         notification: notification,
                         data: data
                     },
@@ -906,7 +949,7 @@
                 }.bind(this),
                 data: {
                     region: region._id,
-                    deviceID: this.getCookie('uuid')
+                    deviceID: this._getCookie('uuid')
                 },
                 dataType: 'json'
             }).done(function (msg) {
