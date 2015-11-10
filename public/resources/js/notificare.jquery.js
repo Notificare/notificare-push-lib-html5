@@ -15,6 +15,8 @@
             sdkVersion: '1.6.0',
             apiUrl: "https://cloud.notifica.re/api",
             websitePushUrl: "https://push.notifica.re/website-push/safari",
+            awsStorage: 'https://s3-eu-west-1.amazonaws.com/notificare-storage',
+            fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
             protocols: ['notificare-push'],
             daysToExpire: '30',
@@ -46,11 +48,18 @@
             this.minReconnectTimeout = 1000;
             this.maxReconnectTimeout = 60000;
             this.allowedNotifications = false;
-
+            this.safariPush = false;
 
             if(typeof(Storage) !== "undefined") {
                 if(!localStorage.getItem("regions")){
                     localStorage.setItem("regions", JSON.stringify([]));
+                }
+
+                if(!localStorage.getItem("position")){
+                    localStorage.setItem("position", JSON.stringify({
+                        latitude: 0.0,
+                        longitude: 0.0,
+                    }));
                 }
             }
 
@@ -93,124 +102,138 @@
 
         registerForNotifications: function(){
 
-            // Safari Website Push
-            if ('safari' in window && 'pushNotification' in window.safari && this.options.pushId) {
+            if(this.applicationInfo.websitePushConfig &&
+                this.applicationInfo.websitePushConfig.icon &&
+                this.applicationInfo.websitePushConfig.allowedDomains.length > 0 &&
+                $.inArray(this.options.fullHost, this.applicationInfo.websitePushConfig.allowedDomains) > -1){
 
-                var data = window.safari.pushNotification.permission(this.options.pushId);
+                // Safari Website Push
+                if ('safari' in window &&
+                    'pushNotification' in window.safari &&
+                    this.applicationInfo.websitePushConfig &&
+                    this.applicationInfo.websitePushConfig.info &&
+                    this.applicationInfo.websitePushConfig.info.subject &&
+                    this.applicationInfo.websitePushConfig.info.subject.UID) {
 
-                if (data.permission == 'default') {
+                    var data = window.safari.pushNotification.permission(this.applicationInfo.websitePushConfig.info.subject.UID);
 
-                    window.safari.pushNotification.requestPermission( this.options.websitePushUrl, this.options.pushId, {applicationKey: this.options.appKey}, function() {
+                    if (data.permission == 'default') {
 
-                        if(data.deviceToken){
-                            $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
+                        window.safari.pushNotification.requestPermission( this.options.websitePushUrl, this.applicationInfo.websitePushConfig.info.subject.UID, {applicationKey: this.options.appKey}, function(permission) {
+
+                            if(permission.deviceToken){
+
+                                this.allowedNotifications = true;
+                                this.safariPush = true;
+                                $(this.element).trigger("notificare:didReceiveDeviceToken", permission.deviceToken);
+                                this.logEvent({
+                                    sessionID: this.uniqueId,
+                                    type: 're.notifica.event.application.Install'
+                                },  function(data){
+
+                                }, function(error){
+
+                                });
+
+                            }
+
+                        }.bind(this));
+                    } else if (data.permission == 'denied') {
+                        if(this.options.allowSilent){
+                            this._setSocket();
+                        }
+                    } else if (data.permission == 'granted') {
+                        this.allowedNotifications = true;
+                        this.safariPush = true;
+                        $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
+                    }
+
+                } else {
+
+                    //Continue with Websockets
+
+                    //Modern browsers using window.Notification
+                    if (window.Notification) {
+
+                        if (Notification.permission === 'default') {
+
+                            Notification.requestPermission(function () {
+                                this.allowedNotifications = true;
+                                this._setSocket();
+                            }.bind(this));
+
+
+                        } else if (Notification.permission === 'granted') {
                             this.allowedNotifications = true;
-                            this.logEvent({
-                                sessionID: this.uniqueId,
-                                type: 're.notifica.event.application.Install'
-                            },  function(data){
-
-                            }, function(error){
-
-                            });
-
+                            this._setSocket();
+                        } else if (Notification.permission === 'denied') {
+                            if(this.options.allowSilent){
+                                this._setSocket();
+                            }
                         } else {
                             if(this.options.allowSilent){
                                 this._setSocket();
                             }
                         }
 
-                    }.bind(this));
-                } else if (data.permission == 'denied') {
-                    if(this.options.allowSilent){
-                        this._setSocket();
+                        //Legacy webkit browsers
+                    } else if (window.webkitNotifications) {
+
+                        if (window.webkitNotifications.checkPermission() == 0) {
+                            this.allowedNotifications = true;
+                            this._setSocket();
+                        } else {
+                            window.webkitNotifications.requestPermission(function(e){
+
+                                if(window.webkitNotifications.checkPermission() == 1){
+                                    if(this.options.allowSilent){
+                                        this._setSocket();
+                                    }
+                                } else if(window.webkitNotifications.checkPermission() == 2){
+                                    if(this.options.allowSilent){
+                                        this._setSocket();
+                                    }
+                                } else {
+                                    this.allowedNotifications = true;
+                                    this._setSocket();
+                                }
+
+                            }.bind(this));
+                        }
+
+                        //Legacy mozilla browsers
+                    } else if (navigator.mozNotification) {
+
+                        if (navigator.mozNotification.checkPermission() == 0) {
+                            this.allowedNotifications = true;
+                            this._setSocket();
+                        }else{
+                            navigator.mozNotification.requestPermission(function(e){
+                                if(navigator.mozNotification.checkPermission() == 1){
+                                    if(this.options.allowSilent){
+                                        this._setSocket();
+                                    }
+                                } else if(navigator.mozNotification.checkPermission() == 2){
+                                    if(this.options.allowSilent){
+                                        this._setSocket();
+                                    }
+                                } else {
+                                    this.allowedNotifications = true;
+                                    this._setSocket();
+                                }
+                            }.bind(this));
+                        }
+                    } else {
+                        if(this.options.allowSilent){
+                            this._setSocket();
+                        }
                     }
-                } else if (data.permission == 'granted') {
-                    this.allowedNotifications = true;
-                    $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                 }
 
             } else {
-
-                //Continue with Websockets
-
-                //Modern browsers using window.Notification
-                if (window.Notification) {
-
-                    if (Notification.permission === 'default') {
-
-                        Notification.requestPermission(function () {
-                            this.allowedNotifications = true;
-                            this._setSocket();
-                        }.bind(this));
-
-
-                    } else if (Notification.permission === 'granted') {
-                        this.allowedNotifications = true;
-                        this._setSocket();
-                    } else if (Notification.permission === 'denied') {
-                        if(this.options.allowSilent){
-                            this._setSocket();
-                        }
-                    } else {
-                        if(this.options.allowSilent){
-                            this._setSocket();
-                        }
-                    }
-
-                    //Legacy webkit browsers
-                } else if (window.webkitNotifications) {
-
-                    if (window.webkitNotifications.checkPermission() == 0) {
-                        this.allowedNotifications = true;
-                        this._setSocket();
-                    } else {
-                        window.webkitNotifications.requestPermission(function(e){
-
-                            if(window.webkitNotifications.checkPermission() == 1){
-                                if(this.options.allowSilent){
-                                    this._setSocket();
-                                }
-                            } else if(window.webkitNotifications.checkPermission() == 2){
-                                if(this.options.allowSilent){
-                                    this._setSocket();
-                                }
-                            } else {
-                                this.allowedNotifications = true;
-                                this._setSocket();
-                            }
-
-                        }.bind(this));
-                    }
-
-                    //Legacy mozilla browsers
-                } else if (navigator.mozNotification) {
-
-                    if (navigator.mozNotification.checkPermission() == 0) {
-                        this.allowedNotifications = true;
-                        this._setSocket();
-                    }else{
-                        navigator.mozNotification.requestPermission(function(e){
-                            if(navigator.mozNotification.checkPermission() == 1){
-                                if(this.options.allowSilent){
-                                    this._setSocket();
-                                }
-                            } else if(navigator.mozNotification.checkPermission() == 2){
-                                if(this.options.allowSilent){
-                                    this._setSocket();
-                                }
-                            } else {
-                                this.allowedNotifications = true;
-                                this._setSocket();
-                            }
-                        }.bind(this));
-                    }
-                } else {
-                    if(this.options.allowSilent){
-                        this._setSocket();
-                    }
-                }
+                this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed");
             }
+
         },
         /**
          * Get/Set userId
@@ -390,6 +413,7 @@
 
             this._setCookie(uuid);
 
+            console.log(this.safariPush);
             $.ajax({
                 type: "POST",
                 url: this.options.apiUrl + '/device',
@@ -401,12 +425,12 @@
                     deviceID : uuid,
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
-                    platform : this.options.clientInfo.getOS().name,
+                    platform : (this.safariPush) ? 'Safari' : this.options.clientInfo.getOS().name,
                     osVersion : this.options.clientInfo.getOS().version,
                     sdkVersion : this.options.sdkVersion,
                     appVersion : this.options.appVersion,
                     deviceString : window.navigator.platform, //to get better
-                    transport : 'Websocket',
+                    transport : (this.safariPush) ? 'WebsitePush' : 'Websocket',
                     timeZoneOffset : (d.getTimezoneOffset()/60) * -1
                 },
                 dataType: 'json'
@@ -445,6 +469,12 @@
                 }.bind(this)
             }).done(function( msg ) {
                 if(this.allowedNotifications){
+
+                    if(this.options.soundsDir){
+                        var audio = new Audio(this.options.soundsDir + msg.sound);
+                        audio.play();
+                    }
+
                     this.showNotification(msg);
                 }
             }.bind(this)).fail(function( msg ) {
@@ -497,7 +527,7 @@
                     {
                         'body': msg.notification.message,
                         'tag': msg.notification.id,
-                        'icon': this.options.icon
+                        'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
                     }
                 );
                 // remove the notification from Notification Center when it is clicked
@@ -508,7 +538,7 @@
                 }.bind(this);
 
             } else if ("webkitNotifications" in window) {
-                var n = window.webkitNotifications.createNotification(this.options.icon, this.applicationInfo.name, msg.notification.message);
+                var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
                 n.show();
                 n.onclick = function () {
                     $(this.element).trigger("notificare:didOpenNotification", msg.notification);
@@ -516,7 +546,7 @@
                 }.bind(this);
 
             } else if ("mozNotification" in navigator) {
-                var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.icon);
+                var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
                 n.show();
                 n.onclick = function () {
                     $(this.element).trigger("notificare:didOpenNotification", msg.notification);
@@ -576,6 +606,34 @@
             }.bind(this))
             .fail(function( msg ) {
                 errors('Notificare: Failed to register log');
+            }.bind(this));
+        },
+
+        /**
+         * Log a custom event
+         * @param event
+         * @param success
+         * @param errors
+         */
+        logCustomEvent: function (event, success, errors) {
+            $.ajax({
+                type: "POST",
+                url: this.options.apiUrl + '/event',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
+                data: {
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.custom.' + event,
+                    userID: this.options.userId || null,
+                    deviceID: this._getCookie('uuid')
+                },
+                dataType: 'json'
+            }).done(function( msg ) {
+                success(msg);
+            }.bind(this))
+            .fail(function( msg ) {
+                errors('Notificare: Failed to register custom event');
             }.bind(this));
         },
         /**
@@ -699,7 +757,6 @@
 
                             this._getDeviceCountry(position, function(data){
                                 this.updateLocation(position, data.country, function(data){
-
                                     this._getNearestRegions(position, function(regions){
                                         this._handleRegions(position, regions);
                                         success(data);
@@ -763,28 +820,57 @@
          */
         updateLocation: function(position, country, success, errors){
 
-            $.ajax({
-                type: "PUT",
-                url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                }.bind(this),
-                data: {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    country: country
-                },
-                dataType: 'json'
-            }).done(function( msg ) {
+            var cachedPosition = JSON.parse(localStorage.getItem("position"));
+
+            if(cachedPosition.latitude != position.coords.latitude || cachedPosition.longitude != position.coords.longitude){
+
+                $.ajax({
+                    type: "PUT",
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
+                    data: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        country: country
+                    },
+                    dataType: 'json'
+                }).done(function( msg ) {
+                    localStorage.setItem("position", JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    }));
+                    success({
+                        accuracy: position.coords.accuracy,
+                        altitude: position.coords.altitude,
+                        altitudeAccuracy: position.coords.altitudeAccuracy,
+                        heading: position.coords.heading,
+                        speed: position.coords.speed,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        country: country
+                    });
+                }.bind(this))
+                .fail(function( msg ) {
+                    errors(null);
+                }.bind(this));
+
+            } else {
+                this.log("Notificare: Skipped location update, nothing changed");
                 success({
+                    accuracy: position.coords.accuracy,
+                    altitude: position.coords.altitude,
+                    altitudeAccuracy: position.coords.altitudeAccuracy,
+                    heading: position.coords.heading,
+                    speed: position.coords.speed,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     country: country
                 });
-            }.bind(this))
-            .fail(function( msg ) {
-                errors(null);
-            }.bind(this));
+            }
+
+
 
         },
 
