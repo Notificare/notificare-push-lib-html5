@@ -1,7 +1,12 @@
+1.6.0
+- Total refactor of the plugin to use Cloud API instead of a specific backend
+
 1.5.0
 - updated dependencies
+
 1.1
 - exponential fallback for connection retry
+
 1.0-RC1  21-03-2014 Joel Oliveira
 - refactored for node environment
 

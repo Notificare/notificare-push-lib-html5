@@ -7,4 +7,4 @@ For documentation please refer to:
 http://docs.notifica.re/sdk
 
 For support please use:
-https://notificare.zendesk.com
+http://support.notifica.re
