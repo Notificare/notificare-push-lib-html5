@@ -52,7 +52,10 @@
         <script src="/resources/js/notificare.jquery.min.js"></script>
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 		<script>
-			$(function() {
+
+
+			$(document).ready(function(){
+
 				var options = {
 					appVersion: '1.0',
 					appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
@@ -104,6 +107,7 @@
 				$("#myapp").bind("notificare:didOpenNotification", function(event, data) {
 					instance.notificare("log", data.message);
 				});
+
 			});
 		</script>
 	</body>

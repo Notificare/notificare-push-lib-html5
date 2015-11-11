@@ -65,17 +65,20 @@
 
             this._getApplicationInfo();
 
-            this.logEvent({
-                sessionID: this.uniqueId,
-                type: 're.notifica.event.application.Open'
-            }, function(data){
 
-            }, function(error){
+            $(window).bind("focus",function(event){
 
-            });
+                this.sessionDate = new Date();
+                this.logEvent({
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.application.Open'
+                }, function(data){
 
-            window.onbeforeunload = function() {
+                }, function(error){
 
+                });
+
+            }.bind(this)).bind("blur", function(event){
                 var t2 = new Date(),
                     t1 = this.sessionDate,
                     dif = t1.getTime() - t2.getTime(),
@@ -89,14 +92,11 @@
                         length: seconds
                     }
                 }, function(data){
-
+                    console.log("Notificare: Session:" + seconds + " seconds");
                 }, function(error){
 
                 });
-
-                return 'Leaving this page will prevent notifications from being received.';
-            }.bind(this);
-
+            }.bind(this));
 
         },
 
@@ -396,6 +396,17 @@
             }).done(function( msg ) {
                 this.applicationInfo = msg.application;
                 $(this.element).trigger("notificare:onReady", msg.application);
+
+                this.logEvent({
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.application.Open'
+                }, function(data){
+
+                }, function(error){
+
+                });
+
+
                 this._onURLLocationChanged();
 
             }.bind(this)).fail(function( msg ) {
@@ -487,6 +498,10 @@
 
         },
 
+        /**
+         * Open Notification
+         * @param notification
+         */
         openNotification: function (notification) {
 
             $.ajax({
@@ -556,6 +571,10 @@
 
         },
 
+        /**
+         * Load Notification on URLLocationChanged
+         * @private
+         */
         _onURLLocationChanged: function(){
             if(this.applicationInfo && this.applicationInfo.websitePushConfig && this.applicationInfo.websitePushConfig.urlFormatString){
                 var re = new RegExp(this.applicationInfo.websitePushConfig.urlFormatString.replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1").replace('%@','(\\w+)'));
