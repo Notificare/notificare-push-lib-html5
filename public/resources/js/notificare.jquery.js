@@ -396,6 +396,8 @@
             }).done(function( msg ) {
                 this.applicationInfo = msg.application;
                 $(this.element).trigger("notificare:onReady", msg.application);
+                this._onURLLocationChanged();
+
             }.bind(this)).fail(function( msg ) {
                 setTimeout(function() {
                     this._getApplicationInfo();
@@ -413,7 +415,6 @@
 
             this._setCookie(uuid);
 
-            console.log(this.safariPush);
             $.ajax({
                 type: "POST",
                 url: this.options.apiUrl + '/device',
@@ -470,8 +471,9 @@
             }).done(function( msg ) {
                 if(this.allowedNotifications){
 
-                    if(this.options.soundsDir){
-                        var audio = new Audio(this.options.soundsDir + msg.sound);
+                    if(this.options.soundsDir && notification.sound){
+                        var audio = new Audio(this.options.soundsDir + notification.sound);
+                        audio.load();
                         audio.play();
                     }
 
@@ -495,17 +497,7 @@
                 }.bind(this)
             }).done(function( msg ) {
                 $(this.element).trigger("notificare:didOpenNotification", msg.notification);
-                this.logEvent({
-                    sessionID: this.uniqueId,
-                    type: 're.notifica.event.notification.Open',
-                    notification: msg.notification.id,
-                    userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid')
-                },  function(data){
-
-                }, function(error){
-
-                });
+                this._logNotificationEvents(msg);
             }.bind(this)).fail(function( msg ) {
                 setTimeout(function() {
                     this.openNotification(notification);
@@ -526,34 +518,53 @@
                     this.applicationInfo.name,
                     {
                         'body': msg.notification.message,
-                        'tag': msg.notification.id,
+                        'tag': msg.notification._id,
                         'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
                     }
                 );
                 // remove the notification from Notification Center when it is clicked
                 n.onclick = function () {
-                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
-                    this._logNotificationEvents(msg);
                     n.close();
+                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                    window.location.replace(url);
+                    this._onURLLocationChanged();
+
                 }.bind(this);
 
             } else if ("webkitNotifications" in window) {
                 var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
                 n.show();
                 n.onclick = function () {
-                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
-                    this._logNotificationEvents(msg);
+
+                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                    window.location.replace(url);
+                    this._onURLLocationChanged();
+
                 }.bind(this);
 
             } else if ("mozNotification" in navigator) {
                 var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
                 n.show();
                 n.onclick = function () {
-                    $(this.element).trigger("notificare:didOpenNotification", msg.notification);
-                    this._logNotificationEvents(msg);
+
+                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                    window.location.replace(url);
+                    this._onURLLocationChanged();
+
                 }.bind(this);
             }
 
+        },
+
+        _onURLLocationChanged: function(){
+            if(this.applicationInfo && this.applicationInfo.websitePushConfig && this.applicationInfo.websitePushConfig.urlFormatString){
+                var re = new RegExp(this.applicationInfo.websitePushConfig.urlFormatString.replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1").replace('%@','(\\w+)'));
+                var comps = re.exec(window.location);
+
+                if(comps && comps.length > 1){
+                    this.openNotification({id: comps[1]});
+                }
+            }
         },
 
         /**
@@ -564,7 +575,7 @@
             this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Influenced',
-                notification: msg.notification.id,
+                notification: msg.notification._id,
                 userID: this.options.userId || null,
                 deviceID: this._getCookie('uuid')
             },  function(data){
@@ -576,7 +587,7 @@
             this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Open',
-                notification: msg.notification.id,
+                notification: msg.notification._id,
                 userID: this.options.userId || null,
                 deviceID: this._getCookie('uuid')
             },  function(data){
@@ -842,11 +853,11 @@
                         longitude: position.coords.longitude,
                     }));
                     success({
-                        accuracy: position.coords.accuracy,
-                        altitude: position.coords.altitude,
-                        altitudeAccuracy: position.coords.altitudeAccuracy,
-                        heading: position.coords.heading,
-                        speed: position.coords.speed,
+                        accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
+                        altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
+                        altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
+                        heading: (!isNaN(position.coords.heading)) ? position.coords.heading : null,
+                        speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         country: country
@@ -859,11 +870,11 @@
             } else {
                 this.log("Notificare: Skipped location update, nothing changed");
                 success({
-                    accuracy: position.coords.accuracy,
-                    altitude: position.coords.altitude,
-                    altitudeAccuracy: position.coords.altitudeAccuracy,
-                    heading: position.coords.heading,
-                    speed: position.coords.speed,
+                    accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
+                    altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
+                    altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
+                    heading: (!isNaN(position.coords.heading)) ? position.coords.heading : null,
+                    speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     country: country

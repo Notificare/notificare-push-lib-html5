@@ -98,11 +98,11 @@
 
 				$("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
 
-					instance.notificare("log", data.alert);
+					//instance.notificare("log", data.alert);
 				});
 
 				$("#myapp").bind("notificare:didOpenNotification", function(event, data) {
-					instance.notificare("log", data.notification);
+					instance.notificare("log", data.message);
 				});
 			});
 		</script>
