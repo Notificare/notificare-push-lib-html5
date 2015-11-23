@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.6.0',
+            sdkVersion: '1.6.1',
             apiUrl: "https://cloud.notifica.re/api",
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             awsStorage: 'https://s3-eu-west-1.amazonaws.com/notificare-storage',
@@ -785,21 +785,38 @@
                     if (navigator.geolocation) {
                         navigator.geolocation.watchPosition(function(position){
 
-                            this._getDeviceCountry(position, function(data){
-                                this.updateLocation(position, data.country, function(data){
-                                    this._getNearestRegions(position, function(regions){
-                                        this._handleRegions(position, regions);
-                                        success(data);
-                                    }.bind(this), function(errors){
+                            var cachedPosition = JSON.parse(localStorage.getItem("position"));
 
+                            if(cachedPosition.latitude != position.coords.latitude || cachedPosition.longitude != position.coords.longitude){
+
+                                this._getDeviceCountry(position, function(data){
+
+                                    this.updateLocation(position, data.country, function(data){
+
+                                        this._getNearestRegions(position, function(regions){
+                                            this._handleRegions(position, regions);
+                                            success(data);
+                                        }.bind(this), function(error){
+                                            errors("Notificare: Failed to get nearest regions");
+                                        });
+
+                                    }.bind(this), function(){
+                                        errors("Notificare: Failed to update device location");
                                     });
+                                }.bind(this));
 
+                            } else {
 
-                                }.bind(this), function(){
-                                    errors("Notificare: Failed to update device location");
+                                //Location is the same, let's just check for regions
+                                this._getNearestRegions(position, function(regions){
+                                    this._handleRegions(position, regions);
+                                    this.log("Notificare: Skipped location update, nothing changed");
+                                    success(JSON.parse(localStorage.getItem("position")));
+                                }.bind(this), function(error){
+                                    errors("Notificare: Failed to get nearest regions");
                                 });
-                            }.bind(this));
 
+                            }
 
                         }.bind(this), function(error){
                             switch(error.code) {
@@ -850,45 +867,20 @@
          */
         updateLocation: function(position, country, success, errors){
 
-            var cachedPosition = JSON.parse(localStorage.getItem("position"));
-
-            if(cachedPosition.latitude != position.coords.latitude || cachedPosition.longitude != position.coords.longitude){
-
-                $.ajax({
-                    type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
-                    beforeSend: function (xhr) {
-                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                    }.bind(this),
-                    data: {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        country: country
-                    },
-                    dataType: 'json'
-                }).done(function( msg ) {
-                    localStorage.setItem("position", JSON.stringify({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    }));
-                    success({
-                        accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
-                        altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
-                        altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
-                        heading: (!isNaN(position.coords.heading)) ? position.coords.heading : null,
-                        speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        country: country
-                    });
-                }.bind(this))
-                .fail(function( msg ) {
-                    errors(null);
-                }.bind(this));
-
-            } else {
-                this.log("Notificare: Skipped location update, nothing changed");
-                success({
+            $.ajax({
+                type: "PUT",
+                url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
+                data: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    country: country
+                },
+                dataType: 'json'
+            }).done(function( msg ) {
+                localStorage.setItem("position", JSON.stringify({
                     accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
                     altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
                     altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
@@ -896,11 +888,14 @@
                     speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
-                    country: country
-                });
-            }
-
-
+                    country: country,
+                    timestamp: position.timestamp
+                }));
+                success(JSON.parse(localStorage.getItem("position")));
+            }.bind(this))
+            .fail(function( msg ) {
+                errors(null);
+            }.bind(this));
 
         },
 
@@ -997,7 +992,7 @@
 
             $.ajax({
                 type: "GET",
-                url: 'http://maps.googleapis.com/maps/api/geocode/json',
+                url: 'https://maps.googleapis.com/maps/api/geocode/json',
                 data: {
                     latlng: position.coords.latitude + ',' + position.coords.longitude,
                     sensor: false
