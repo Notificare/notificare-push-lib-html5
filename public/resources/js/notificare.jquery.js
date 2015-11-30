@@ -65,13 +65,17 @@
 
             this._getApplicationInfo();
 
+        },
 
+        _handleSession: function(){
             $(window).bind("focus",function(event){
 
                 this.sessionDate = new Date();
                 this.logEvent({
                     sessionID: this.uniqueId,
-                    type: 're.notifica.event.application.Open'
+                    type: 're.notifica.event.application.Open',
+                    userID: this.options.userId || null,
+                    deviceID: this._getCookie('uuid') || null
                 }, function(data){
 
                 }, function(error){
@@ -88,6 +92,8 @@
                 this.logEvent({
                     sessionID: this.uniqueId,
                     type: 're.notifica.event.application.Close',
+                    userID: this.options.userId || null,
+                    deviceID: this._getCookie('uuid') || null,
                     data: {
                         length: seconds
                     }
@@ -97,7 +103,6 @@
 
                 });
             }.bind(this));
-
         },
 
         registerForNotifications: function(){
@@ -397,15 +402,7 @@
                 this.applicationInfo = msg.application;
                 $(this.element).trigger("notificare:onReady", msg.application);
 
-                this.logEvent({
-                    sessionID: this.uniqueId,
-                    type: 're.notifica.event.application.Open'
-                }, function(data){
-
-                }, function(error){
-
-                });
-
+                this._handleSession();
 
                 this._onURLLocationChanged();
 
@@ -432,7 +429,7 @@
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
-                data: {
+                data: JSON.stringify({
                     auth_token: this.options.token,
                     deviceID : uuid,
                     userID : (this.options.userId) ? this.options.userId : null,
@@ -444,8 +441,9 @@
                     deviceString : window.navigator.platform, //to get better
                     transport : (this.safariPush) ? 'WebsitePush' : 'Websocket',
                     timeZoneOffset : (d.getTimezoneOffset()/60) * -1
-                },
-                dataType: 'json'
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
             }).done(function( msg ) {
                 $(this.element).trigger("notificare:didRegisterDevice", uuid);
             }.bind(this)).fail(function( msg ) {
@@ -629,8 +627,9 @@
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
-                data: data,
-                dataType: 'json'
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
             }).done(function( msg ) {
                 success(msg);
             }.bind(this))
@@ -652,13 +651,14 @@
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
-                data: {
+                data: JSON.stringify({
                     sessionID: this.uniqueId,
                     type: 're.notifica.event.custom.' + event,
                     userID: this.options.userId || null,
                     deviceID: this._getCookie('uuid')
-                },
-                dataType: 'json'
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
             }).done(function( msg ) {
                 success(msg);
             }.bind(this))
@@ -703,10 +703,11 @@
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
-                    data: {
+                    data: JSON.stringify({
                         tags: data
-                    },
-                    dataType: 'json'
+                    }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
@@ -732,10 +733,11 @@
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
-                    data: {
+                    data: JSON.stringify({
                         tag: data
-                    },
-                    dataType: 'json'
+                    }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
@@ -761,7 +763,8 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
                     data: null,
-                    dataType: 'json'
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
@@ -873,12 +876,13 @@
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
-                data: {
+                data: JSON.stringify({
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     country: country
-                },
-                dataType: 'json'
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
             }).done(function( msg ) {
                 localStorage.setItem("position", JSON.stringify({
                     accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
@@ -1032,13 +1036,14 @@
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
-                    data: {
+                    data: JSON.stringify({
                         userID: this.options.userId,
                         deviceID: this._getCookie('uuid'),
                         notification: notification,
                         data: data
-                    },
-                    dataType: 'json'
+                    }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
                 }).done(function (msg) {
                     success(msg);
                 }.bind(this))
@@ -1058,11 +1063,12 @@
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
-                data: {
+                data: JSON.stringify({
                     region: region._id,
                     deviceID: this._getCookie('uuid')
-                },
-                dataType: 'json'
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
             }).done(function (msg) {
                 success(msg);
             }.bind(this))

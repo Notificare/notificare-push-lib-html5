@@ -1,3 +1,7 @@
+1.6.2 - 01-12-2015 Joel Oliveira
+- Added json payloads to all calls
+- Changed handleSession to account with userID and deviceID
+
 1.6.1 - 23-11-2015 Joel Oliveira
 - Added cached location before getting a country
 - Changed Google geocode to use https
