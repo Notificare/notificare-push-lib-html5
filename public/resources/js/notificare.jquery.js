@@ -61,6 +61,10 @@
                         longitude: 0.0,
                     }));
                 }
+
+                if(!localStorage.getItem("badge")){
+                    localStorage.setItem("badge", 0);
+                }
             }
 
             this._getApplicationInfo();
@@ -267,6 +271,10 @@
                 return this.options.username;
             }
         },
+
+        badge: function () {
+            return localStorage.getItem('badge');
+        },
         /**
          *
          */
@@ -445,6 +453,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
+                this._refreshBadge();
                 $(this.element).trigger("notificare:didRegisterDevice", uuid);
             }.bind(this)).fail(function( msg ) {
                 $(this.element).trigger("notificare:didFailToRegisterDevice", uuid);
@@ -460,7 +469,7 @@
             this.logEvent({
                 sessionID: this.uniqueId,
                 type: 're.notifica.event.notification.Receive',
-                notification: notification.id,
+                notification: notification.notificationId || notification.id,
                 userID: this.options.userId || null,
                 deviceID: this._getCookie('uuid')
             },  function(data){
@@ -486,6 +495,7 @@
                         audio.play();
                     }
 
+                    console.log(msg);
                     this.showNotification(msg);
                 }
             }.bind(this)).fail(function( msg ) {
@@ -608,8 +618,8 @@
                 userID: this.options.userId || null,
                 deviceID: this._getCookie('uuid')
             },  function(data){
-
-            }, function(error){
+                this._refreshBadge();
+            }.bind(this), function(error){
 
             });
         },
@@ -901,6 +911,140 @@
                 errors(null);
             }.bind(this));
 
+        },
+
+        /**
+         * Get the inbox for a specific device
+         * @param success
+         * @param errors
+         */
+        fetchInbox: function (success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                        success(msg.inboxItems);
+                    }.bind(this))
+                    .fail(function( msg ) {
+                        errors("Notificare: Failed to get the inbox");
+                    }.bind(this));
+            } else {
+                errors('Notificare: Calling fetchInbox before having a deviceId');
+            }
+        },
+
+        /**
+         * Open Inbox Item
+         * @param inboxItem
+         */
+        openInboxItem: function (inboxItem) {
+
+           this.openNotification({
+               id: inboxItem.notification
+           });
+
+        },
+        /**
+         * Mark Inbox Item as read
+         * @param inboxItem
+         * @param success
+         * @param errors
+         */
+        markAsRead: function(inboxItem, success, errors){
+            this.logEvent({
+                sessionID: this.uniqueId,
+                type: 're.notifica.event.notification.Open',
+                notification: inboxItem.notification,
+                userID: this.options.userId || null,
+                deviceID: this._getCookie('uuid')
+            },  function(data){
+                this._refreshBadge();
+                success(data);
+            }, function(error){
+                errors("Notificare: Failed to mark inbox item as read");
+            });
+        },
+
+        /**
+         * Clear inbox for a specific device
+         * @param success
+         * @param errors
+         */
+        clearInbox: function (success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "DELETE",
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                    this._refreshBadge();
+                    success(msg);
+                }.bind(this))
+                .fail(function( msg ) {
+                    errors("Notificare: Failed to clear the inbox");
+                }.bind(this));
+            } else {
+                errors('Notificare: Calling clearInbox before having a deviceId');
+            }
+        },
+
+        /**
+         * Remove inbox item
+         * @param success
+         * @param errors
+         */
+        removeFromInbox: function (inboxItem, success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "DELETE",
+                    url: this.options.apiUrl + '/notification/inbox/' + inboxItem,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                    this._refreshBadge();
+                    success(msg);
+                }.bind(this))
+                .fail(function( msg ) {
+                    errors("Notificare: Failed to remove item from inbox");
+                }.bind(this));
+            } else {
+                errors('Notificare: Calling removeFromInbox before having a deviceId');
+            }
+        },
+
+
+        /**
+         * Helper method to get the latest unread number
+         */
+        _refreshBadge: function () {
+
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    data:{
+                        since: new Date().getTime()
+                    },
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                    localStorage.setItem("badge", msg.unread);
+                    $(this.element).trigger("notificare:didUpdateBadge", msg.unread);
+                }.bind(this))
+                .fail(function( msg ) {
+                    $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
+                }.bind(this));
+            } else {
+                errors('Notificare: Refreshing Badge before having a deviceId');
+            }
         },
 
         _handleRegions: function(position, regions){
