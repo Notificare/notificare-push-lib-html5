@@ -29,27 +29,29 @@
 							</button>
 							<a class="navbar-brand" href="http://notifica.re">Project name</a>
 						</div>
-						<div class="navbar-collapse collapse">
-							<ul class="nav navbar-nav">
-								<li class="active"><a href="#">Item 1</a></li>
-								<li><a href="#">Item 2</a></li>
-								<li><a href="#">Item 3</a></li>
-							</ul>
-						</div><!--/.nav-collapse -->
 					</div><!--/.container-fluid -->
 				</div>
 				<div class="jumbotron">
 					<h1>My Banner</h1>
 					<p>Quickly bootstrap your html project</p>
 					<p>
-						<a class="btn btn-lg btn-primary" href="#" role="button">More Info</a>
+						<div class="btn-group">
+							<button class="btn btn-default btn-lg dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								Inbox <span id="badge" class="badge"></span> <span class="caret"></span>
+							</button>
+							<ul id="inbox-list" class="dropdown-menu">
+								<li id="divider" role="separator" class="divider"></li>
+								<li><a id="clear-inbox" href="#">Clear Inbox</a></li>
+							</ul>
+						</div>
+
 					</p>
 				</div>
 			</div> <!-- /container -->
 		</section>
 		<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/UAParser.js/0.7.9/ua-parser.min.js"></script>
-        <script src="/resources/js/notificare.jquery.js"></script>
+        <script src="/resources/js/notificare.jquery.min.js"></script>
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 		<script>
 
@@ -74,12 +76,6 @@
 				$("#myapp").bind("notificare:onReady", function(event, data) {
 					instance.notificare("registerForNotifications");
 
-					instance.notificare("fetchInbox", function(inboxItems){
-						console.log(inboxItems);
-					}, function(error){
-						console.log(error);
-					});
-
 				});
 
 				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
@@ -90,15 +86,23 @@
 
 				$("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
 					//Here it's safe to register tags
-					console.log(instance.notificare("badge"));
 
 					instance.notificare("getTags", function(tags){
 						console.log(tags);
 					}, function(error){
 						console.log(error);
 					});
+
 					instance.notificare("startLocationUpdates", function(data){
 						console.log(data);
+					}, function(error){
+						console.log(error);
+					});
+
+					instance.notificare("fetchInbox", function(inboxItems){
+
+						refreshInbox(inboxItems);
+
 					}, function(error){
 						console.log(error);
 					});
@@ -119,6 +123,42 @@
 
 				$("#myapp").bind("notificare:didUpdateBadge", function(event, data) {
 					instance.notificare("log", 'didUpdateBadge: ' + data);
+					if (data > 0) {
+						$("#badge").text(data);
+						$("#badge").show();
+					} else {
+						$("#badge").hide();
+					}
+				});
+
+				$("#clear-inbox").click(function(){
+					instance.notificare("clearInbox", function(msg){
+						instance.notificare("fetchInbox", function(inboxItems){
+
+							refreshInbox(inboxItems);
+
+						}, function(error){
+							console.log(error);
+						});
+					}, function(error){
+						console.log(error);
+					});
+				}.bind(this));
+
+				function refreshInbox(inboxItems){
+					$.each( inboxItems.reverse(), function( key, value ) {
+						if (value.opened) {
+							$("#inbox-list").prepend('<li><a class="open-inbox-message" href="' + value.notification + '">' + value.message + '</a></li>');
+						} else {
+							$("#inbox-list").prepend('<li><a class="open-inbox-message" href="' + value.notification + '"><strong>' + value.message + '</strong></a></li>');
+						}
+
+					});
+				}
+
+				$(document).on('click', '.open-inbox-message', function (){
+					instance.notificare("openInboxItem", {notification: $(this).attr('href')});
+					return false;
 				});
 
 			});
