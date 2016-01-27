@@ -9,59 +9,55 @@
 
 self.addEventListener('push', function (event) {
 
-    console.log(event);
-    //event.waitUntil(
-    //    fetch(options.apiUrl + '/notification/inbox/fordevice/' + _getCookie('uuid'),{
-    //        headers: new Headers({
-    //            "Authorization": "Basic " + btoa(options.appKey + ":" + options.appSecret)
-    //        })
-    //    }).then(function(response) {
-    //        if (response.status !== 200) {
-    //            // Either show a message to the user explaining the error
-    //            // or enter a generic message and handle the
-    //            // onnotificationclick event to direct the user to a web page
-    //            console.log('Looks like there was a problem. Status Code: ' + response.status);
-    //            throw new Error();
-    //        }
-    //
-    //        // Examine the text in the response
-    //        return response.json().then(function(data) {
-    //
-    //            var title = 'Notificare';
-    //            var message = data.inboxItems[0].message;
-    //            var icon = '/favicon.ico';
-    //            var notificationTag = data.inboxItems[0]._id;
-    //
-    //            return self.registration.showNotification(title, {
-    //                body: message,
-    //                icon: icon,
-    //                tag: notificationTag
-    //            });
-    //        });
-    //    }).catch(function(err) {
-    //        console.error('Unable to retrieve data', err);
-    //
-    //        var title = 'An error occurred';
-    //        var message = 'We were unable to get the information for this push message';
-    //        var icon = '/favicon.ico';
-    //        var notificationTag = 'notification-error';
-    //        return self.registration.showNotification(title, {
-    //            body: message,
-    //            icon: icon,
-    //            tag: notificationTag
-    //        });
-    //    })
-    //);
-    var title = 'An error occurred';
-    var message = 'We were unable to get the information for this push message';
-    var icon = '/favicon.ico';
-    var notificationTag = 'notification-error';
-    return self.registration.showNotification(title, {
-        body: message,
-        icon: icon,
-        tag: notificationTag
-    });
+    var options = {
+        appName: "HMTL 5 SDK",
+        apiUrl: "https://cloud.notifica.re/api",
+        appKey: '1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f',
+        appSecret: '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854'
+    };
 
+    event.waitUntil(
+
+        self.registration.pushManager.getSubscription().then(function(data){
+
+            fetch(options.apiUrl + '/notification/inbox/fordevice/' + data.endpoint.split('/').pop(),{
+                headers: new Headers({
+                    "Authorization": "Basic " + btoa(options.appKey + ":" + options.appSecret)
+                })
+            }).then(function(response) {
+                if (response.status !== 200) {
+                    // Either show a message to the user explaining the error
+                    // or enter a generic message and handle the
+                    // onnotificationclick event to direct the user to a web page
+                    console.log('Looks like there was a problem. Status Code: ' + response.status);
+                    throw new Error();
+                }
+
+                // Examine the text in the response
+                return response.json().then(function(data) {
+
+                    if(data && data.inboxItems && data.inboxItems.length > 0){
+                        var title = 'Notificare';
+                        var message = data.inboxItems[0].message;
+                        var icon = '/favicon.ico';
+                        var notificationTag = data.inboxItems[0]._id;
+
+                        return self.registration.showNotification(title, {
+                            body: message,
+                            icon: icon,
+                            tag: notificationTag
+                        });
+                    }
+
+                    return null;
+                });
+            }).catch(function(err) {
+                return null;
+            })
+        }).catch(function(e){
+            return null;
+        })
+    );
 });
 self.addEventListener('notificationclick', function (event) {
     console.log(event);
@@ -83,4 +79,10 @@ self.addEventListener('activate', function (event) {
             );
         })
     );
+});
+
+// Set the callback for the install step
+self.addEventListener('install', function(event) {
+    // Perform install steps
+    console.log(event);
 });

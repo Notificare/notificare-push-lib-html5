@@ -70,12 +70,6 @@
 
             this._getApplicationInfo();
 
-            //navigator.serviceWorker.getRegistrations().then(function(ServiceWorkerRegistrations) {
-            //    console.log(ServiceWorkerRegistrations);
-            //        ServiceWorkerRegistrations[0].unregister().then(function(boolean) {
-            //    });
-            //});
-
         },
 
         _handleSession: function(){
@@ -175,7 +169,6 @@
 
                     navigator.serviceWorker.register(this.options.serviceWorker).then(function(serviceWorkerRegistration) {
 
-                        console.log(serviceWorkerRegistration);
                         // Are Notifications supported in the service worker?
                         serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
                             // Enable any UI which subscribes / unsubscribes from
@@ -187,7 +180,6 @@
                                     userVisibleOnly: true
                                 }).then(function(subscription) {
                                     // The subscription was successful
-                                    console.log("Subscribed for push, token is " + pushToken);
                                     pushToken = this._getPushToken(subscription);
                                     this.allowedNotifications = true;
                                     this.chromePush = true;
@@ -207,7 +199,7 @@
                                             this._setSocket();
                                         }
                                     } else {
-                                        console.error('Unable to subscribe to push.', e);
+                                        console.error('Notiticare: Unable to subscribe to push.', e);
                                     }
                                 }.bind(this));
                                 return;
@@ -215,16 +207,13 @@
                             var pushToken = this._getPushToken(subscription);
                             this.allowedNotifications = true;
                             this.chromePush = true;
-                            console.log("Ready to get pushes. Push token is " + pushToken);
                             $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
 
                         }.bind(this)).catch(function(err) {
-                            //this._setSocket();
-                            console.warn('Error during getSubscription()', err);
+                            console.warn('Notificare: Error during getSubscription()', err);
                         }.bind(this));
                     }.bind(this)).catch(function(err) {
-                        //this._setSocket();
-                        console.log('Error while service worker registration', err);
+                        console.warn('Notificare: Error while service worker registration', err);
                     }.bind(this));
 
                 } else {
