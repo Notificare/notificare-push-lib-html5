@@ -1,0 +1,7 @@
+{
+  "name": "Website Push",
+  "short_name": "Website Push",
+  "display": "standalone",
+  "gcm_sender_id": "920557390137",
+  "gcm_user_visible_only": true
+}

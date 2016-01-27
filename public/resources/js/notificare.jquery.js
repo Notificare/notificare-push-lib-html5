@@ -49,6 +49,7 @@
             this.maxReconnectTimeout = 60000;
             this.allowedNotifications = false;
             this.safariPush = false;
+            this.chromePush = false;
 
             if(typeof(Storage) !== "undefined") {
                 if(!localStorage.getItem("regions")){
@@ -68,6 +69,12 @@
             }
 
             this._getApplicationInfo();
+
+            //navigator.serviceWorker.getRegistrations().then(function(ServiceWorkerRegistrations) {
+            //    console.log(ServiceWorkerRegistrations);
+            //        ServiceWorkerRegistrations[0].unregister().then(function(boolean) {
+            //    });
+            //});
 
         },
 
@@ -156,6 +163,69 @@
                         this.safariPush = true;
                         $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                     }
+
+                } else if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1 &&
+                    'serviceWorker' in navigator &&
+                    'showNotification' in ServiceWorkerRegistration.prototype &&
+                    'PushManager' in window &&
+                    this.applicationInfo.websitePushConfig &&
+                    this.applicationInfo.websitePushConfig.info &&
+                    this.applicationInfo.websitePushConfig.info.subject &&
+                    this.applicationInfo.websitePushConfig.info.subject.UID) {
+
+                    navigator.serviceWorker.register(this.options.serviceWorker).then(function(serviceWorkerRegistration) {
+
+                        console.log(serviceWorkerRegistration);
+                        // Are Notifications supported in the service worker?
+                        serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
+                            // Enable any UI which subscribes / unsubscribes from
+                            // push messages.
+                            if (!subscription) {
+                                // subscribe for push notifications
+                                serviceWorkerRegistration.pushManager.subscribe({
+                                    name: 'push',
+                                    userVisibleOnly: true
+                                }).then(function(subscription) {
+                                    // The subscription was successful
+                                    console.log("Subscribed for push, token is " + pushToken);
+                                    pushToken = this._getPushToken(subscription);
+                                    this.allowedNotifications = true;
+                                    this.chromePush = true;
+                                    $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
+                                    this.logEvent({
+                                        sessionID: this.uniqueId,
+                                        type: 're.notifica.event.application.Install'
+                                    },  function(data){
+
+                                    }, function(error){
+
+                                    });
+
+                                }.bind(this)).catch(function(e) {
+                                    if (Notification.permission === 'denied') {
+                                        if(this.options.allowSilent){
+                                            this._setSocket();
+                                        }
+                                    } else {
+                                        console.error('Unable to subscribe to push.', e);
+                                    }
+                                }.bind(this));
+                                return;
+                            }
+                            var pushToken = this._getPushToken(subscription);
+                            this.allowedNotifications = true;
+                            this.chromePush = true;
+                            console.log("Ready to get pushes. Push token is " + pushToken);
+                            $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
+
+                        }.bind(this)).catch(function(err) {
+                            //this._setSocket();
+                            console.warn('Error during getSubscription()', err);
+                        }.bind(this));
+                    }.bind(this)).catch(function(err) {
+                        //this._setSocket();
+                        console.log('Error while service worker registration', err);
+                    }.bind(this));
 
                 } else {
 
@@ -370,6 +440,7 @@
                         if (data.registration) {
                             $(this.element).trigger("notificare:didReceiveDeviceToken", data.registration.uuid);
                         } else if (data.notification) {
+                            this._refreshBadge();
                             this._getNotification(data.notification);
                         }
                     }
@@ -389,6 +460,18 @@
                 this.log('Notificare: Browser doesn\'t support websockets');
             }
 
+        },
+
+        _getPushToken: function(pushSubscription){
+            var pushToken = '';
+            if (pushSubscription.subscriptionId) {
+                pushToken = pushSubscription.subscriptionId;
+                console.log("Chrome 42, 43, 44: " + pushToken);
+            } else {
+                pushToken = pushSubscription.endpoint.split('/').pop();
+                console.log("Chrome 45+: " + pushToken);
+            }
+            return pushToken;
         },
         /**
          * API Requests
@@ -421,6 +504,29 @@
             }.bind(this));
 
         },
+
+        sendMessage: function(message) {
+            // This wraps the message posting/response in a promise, which will resolve if the response doesn't
+            // contain an error, and reject with the error if it does. If you'd prefer, it's possible to call
+            // controller.postMessage() and set up the onmessage handler independently of a promise, but this is
+            // a convenient wrapper.
+            return new Promise(function(resolve, reject) {
+                var messageChannel = new MessageChannel();
+                messageChannel.port1.onmessage = function(event) {
+                    if (event.data.error) {
+                        reject(event.data.error);
+                    } else {
+                        resolve(event.data);
+                    }
+                };
+
+                // This sends the message data as well as transferring messageChannel.port2 to the service worker.
+                // The service worker can then use the transferred port to reply via postMessage(), which
+                // will in turn trigger the onmessage handler on messageChannel.port1.
+                // See https://html.spec.whatwg.org/multipage/workers.html#dom-worker-postmessage
+                navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
+            });
+        },
         /**
          *
          * Register Device
@@ -430,6 +536,20 @@
             var d = new Date();
 
             this._setCookie(uuid);
+
+            var platform = this.options.clientInfo.getOS().name;
+            if(this.safariPush){
+                platform = 'Safari';
+            } else if(this.chromePush){
+                platform = 'Chrome';
+            }
+
+            var transport = 'Websocket';
+            if(this.safariPush){
+                transport = 'WebsitePush';
+            } else if(this.chromePush){
+                transport = 'GCM';
+            }
 
             $.ajax({
                 type: "POST",
@@ -442,12 +562,13 @@
                     deviceID : uuid,
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
-                    platform : (this.safariPush) ? 'Safari' : this.options.clientInfo.getOS().name,
+                    platform : platform,
                     osVersion : this.options.clientInfo.getOS().version,
                     sdkVersion : this.options.sdkVersion,
                     appVersion : this.options.appVersion,
+                    language: window.navigator.userLanguage || window.navigator.language,
                     deviceString : window.navigator.platform, //to get better
-                    transport : (this.safariPush) ? 'WebsitePush' : 'Websocket',
+                    transport : transport,
                     timeZoneOffset : (d.getTimezoneOffset()/60) * -1
                 }),
                 contentType: "application/json; charset=utf-8",
@@ -494,8 +615,6 @@
                         audio.load();
                         audio.play();
                     }
-
-                    console.log(msg);
                     this.showNotification(msg);
                 }
             }.bind(this)).fail(function( msg ) {
