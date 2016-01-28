@@ -1,5 +1,5 @@
 /*
- *  Notificare JS for jQuery - v1.6.0
+ *  Notificare JS for jQuery - v1.7.0
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
@@ -12,10 +12,8 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.6.1',
-            apiUrl: "https://cloud.notifica.re/api",
+            sdkVersion: '1.7.0',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
-            awsStorage: 'https://s3-eu-west-1.amazonaws.com/notificare-storage',
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
             protocols: ['notificare-push'],
@@ -29,8 +27,6 @@
     function Plugin ( element, options ) {
         this.element = element;
         this.options = $.extend( {}, defaults, options );
-        this._defaults = defaults;
-        this._name = pluginName;
         this.init();
     }
 
@@ -68,7 +64,13 @@
                 }
             }
 
-            this._getApplicationInfo();
+            this._initWithConfig(function(options){
+                this.options = $.extend( {}, defaults, options );
+                this._getApplicationInfo();
+            }.bind(this), function(errors){
+                console.log('Notificare: Please make sure you have a config.json file in the root of your webapp');
+            }.bind(this));
+
 
         },
 
@@ -185,19 +187,6 @@
                                         this._getChromeNotification(data[1]);
                                         break;
                                     case 'workeractivated':
-
-                                        //Let's inform the worker about this app
-                                        this._sendMessage({
-                                            action: 'init',
-                                            apiUrl: this.options.apiUrl,
-                                            appKey: this.options.appKey,
-                                            appSecret: this.options.appSecret,
-                                            appName: this.applicationInfo.name,
-                                            appIcon: this.options.awsStorage + this.applicationInfo.websitePushConfig.icon,
-                                            appHost: this.options.fullHost,
-                                            urlFormatString: this.applicationInfo.websitePushConfig.urlFormatString
-                                        });
-
                                         break;
                                     default:
                                         //console.log(msg);
@@ -516,7 +505,24 @@
         /**
          * API Requests
          */
+        /**
+         * Get Config File
+         * @private
+         */
+        _initWithConfig: function (success, errors) {
 
+            $.ajax({
+                type: "GET",
+                url: '/config.json'
+            }).done(function( msg ) {
+
+                success(msg);
+
+            }.bind(this)).fail(function( msg ) {
+                errors(msg);
+            }.bind(this));
+
+        },
         /**
          * Get Application Info
          * @private
@@ -575,8 +581,6 @@
         registerDevice: function (uuid) {
             var d = new Date();
 
-            this._setCookie(uuid);
-
             var platform = this.options.clientInfo.getOS().name;
             if(this.safariPush){
                 platform = 'Safari';
@@ -600,6 +604,7 @@
                 data: JSON.stringify({
                     auth_token: this.options.token,
                     deviceID : uuid,
+                    oldDeviceID: (this._getCookie('uuid') && this._getCookie('uuid') != uuid) ? this._getCookie('uuid') : null,
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
                     platform : platform,
@@ -614,6 +619,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
+                this._setCookie(uuid);
                 this._refreshBadge();
                 $(this.element).trigger("notificare:didRegisterDevice", uuid);
             }.bind(this)).fail(function( msg ) {

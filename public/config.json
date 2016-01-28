@@ -1,0 +1,17 @@
+{
+  "apiUrl": "https://cloud.notifica.re/api",
+  "awsStorage": "https://s3-eu-west-1.amazonaws.com/notificare-storage",
+  "appHost": "http://localhost:3333",
+  "appVersion": "1.0",
+  "appKey": "1798db7916a4cf53bea00499d6d0b15ca5c8554e25c4fe56cfaea1b9b937764f",
+  "appSecret": "302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854",
+  "allowSilent": true,
+  "soundsDir": "/resources/sounds/",
+  "serviceWorker": "push-worker.js",
+  "serviceWorkerScope": "./",
+  "geolocationOptions": {
+    "timeout": 60000,
+    "enableHighAccuracy": true,
+    "maximumAge": 100000
+  }
+}
