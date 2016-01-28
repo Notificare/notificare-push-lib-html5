@@ -162,58 +162,111 @@
                     'serviceWorker' in navigator &&
                     'showNotification' in ServiceWorkerRegistration.prototype &&
                     'PushManager' in window &&
+                    this.options.serviceWorker &&
+                    this.options.serviceWorkerScope &&
                     this.applicationInfo.websitePushConfig &&
                     this.applicationInfo.websitePushConfig.info &&
                     this.applicationInfo.websitePushConfig.info.subject &&
                     this.applicationInfo.websitePushConfig.info.subject.UID) {
 
-                    navigator.serviceWorker.register(this.options.serviceWorker).then(function(serviceWorkerRegistration) {
+                    navigator.serviceWorker.register(this.options.serviceWorker, {
+                        scope: this.options.serviceWorkerScope
+                    }).then(function() {
 
-                        // Are Notifications supported in the service worker?
-                        serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
-                            // Enable any UI which subscribes / unsubscribes from
-                            // push messages.
-                            if (!subscription) {
-                                // subscribe for push notifications
-                                serviceWorkerRegistration.pushManager.subscribe({
-                                    name: 'push',
-                                    userVisibleOnly: true
-                                }).then(function(subscription) {
-                                    // The subscription was successful
-                                    pushToken = this._getPushToken(subscription);
-                                    this.allowedNotifications = true;
-                                    this.chromePush = true;
-                                    $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
-                                    this.logEvent({
-                                        sessionID: this.uniqueId,
-                                        type: 're.notifica.event.application.Install'
-                                    },  function(data){
+                        //Worker is ready let's handle messages from it
+                        navigator.serviceWorker.onmessage = function(msg){
+                            var data = msg.data.split(':');
+                            if(data && data.length > 1){
+                                switch(data[0]) {
+                                    case 'notificationclick':
+                                        this._handleClickOnChromeNotification(data[1]);
+                                        break;
+                                    case 'notificationreceived':
+                                        this._getChromeNotification(data[1]);
+                                        break;
+                                    case 'workeractivated':
 
-                                    }, function(error){
+                                        //Let's inform the worker about this app
+                                        this._sendMessage({
+                                            action: 'init',
+                                            apiUrl: this.options.apiUrl,
+                                            appKey: this.options.appKey,
+                                            appSecret: this.options.appSecret,
+                                            appName: this.applicationInfo.name,
+                                            appIcon: this.options.awsStorage + this.applicationInfo.websitePushConfig.icon,
+                                            appHost: this.options.fullHost,
+                                            urlFormatString: this.applicationInfo.websitePushConfig.urlFormatString
+                                        });
 
-                                    });
-
-                                }.bind(this)).catch(function(e) {
-                                    if (Notification.permission === 'denied') {
-                                        if(this.options.allowSilent){
-                                            this._setSocket();
-                                        }
-                                    } else {
-                                        console.error('Notiticare: Unable to subscribe to push.', e);
-                                    }
-                                }.bind(this));
-                                return;
+                                        break;
+                                    default:
+                                        //console.log(msg);
+                                        break;
+                                }
                             }
-                            var pushToken = this._getPushToken(subscription);
-                            this.allowedNotifications = true;
-                            this.chromePush = true;
-                            $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
 
-                        }.bind(this)).catch(function(err) {
-                            console.warn('Notificare: Error during getSubscription()', err);
+                        }.bind(this);
+
+                        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+
+                            // Are Notifications supported in the service worker?
+                            serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
+                                // Enable any UI which subscribes / unsubscribes from
+                                // push messages.
+                                if (!subscription) {
+                                    // subscribe for push notifications
+                                    serviceWorkerRegistration.pushManager.subscribe({
+                                        name: 'push',
+                                        userVisibleOnly: true
+                                    }).then(function(subscription) {
+                                        // The subscription was successful
+                                        pushToken = this._getPushToken(subscription);
+                                        this.allowedNotifications = true;
+                                        this.chromePush = true;
+                                        $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
+
+                                        //It's the first time, let's create an install event
+                                        this.logEvent({
+                                            sessionID: this.uniqueId,
+                                            type: 're.notifica.event.application.Install'
+                                        },  function(data){
+
+                                        }, function(error){
+
+                                        });
+
+
+
+                                    }.bind(this)).catch(function(e) {
+                                        if (Notification.permission === 'denied') {
+                                            if(this.options.allowSilent){
+                                                this._setSocket();
+                                            }
+                                        } else {
+                                            setTimeout(function() {
+                                                this.registerForNotifications();
+                                            }.bind(this), 2000);
+                                        }
+                                    }.bind(this));
+                                    return;
+                                }
+                                var pushToken = this._getPushToken(subscription);
+                                this.allowedNotifications = true;
+                                this.chromePush = true;
+                                $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
+
+                            }.bind(this)).catch(function(err) {
+                                //Let's try again
+                                setTimeout(function() {
+                                    this.registerForNotifications();
+                                }.bind(this), 2000);
+                            }.bind(this));
                         }.bind(this));
+
                     }.bind(this)).catch(function(err) {
-                        console.warn('Notificare: Error while service worker registration', err);
+                        setTimeout(function() {
+                            this.registerForNotifications();
+                        }.bind(this), 2000);
                     }.bind(this));
 
                 } else {
@@ -455,10 +508,8 @@
             var pushToken = '';
             if (pushSubscription.subscriptionId) {
                 pushToken = pushSubscription.subscriptionId;
-                console.log("Chrome 42, 43, 44: " + pushToken);
             } else {
                 pushToken = pushSubscription.endpoint.split('/').pop();
-                console.log("Chrome 45+: " + pushToken);
             }
             return pushToken;
         },
@@ -494,7 +545,7 @@
 
         },
 
-        sendMessage: function(message) {
+        _sendMessage: function(message) {
             // This wraps the message posting/response in a promise, which will resolve if the response doesn't
             // contain an error, and reject with the error if it does. If you'd prefer, it's possible to call
             // controller.postMessage() and set up the onmessage handler independently of a promise, but this is
@@ -614,6 +665,64 @@
 
         },
 
+
+        /**
+         * Get a notification object for a Chrome event
+         * @param notification
+         * @private
+         */
+        _getChromeNotification: function (notification) {
+
+            this.logEvent({
+                sessionID: this.uniqueId,
+                type: 're.notifica.event.notification.Receive',
+                notification: notification,
+                userID: this.options.userId || null,
+                deviceID: this._getCookie('uuid')
+            },  function(data){
+
+            }, function(error){
+
+            });
+
+            $.ajax({
+                type: "GET",
+                url: this.options.apiUrl + '/notification/' + notification,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this)
+            }).done(function( msg ) {
+
+                $(this.element).trigger("notificare:didReceiveNotification", msg.notification);
+
+                if(this.allowedNotifications){
+                    if(this.options.soundsDir && msg.notification.sound){
+                        var audio = new Audio(this.options.soundsDir + msg.notification.sound);
+                        audio.load();
+                        audio.play();
+                    }
+                }
+
+                this._refreshBadge();
+            }.bind(this)).fail(function( msg ) {
+                setTimeout(function() {
+                    this._getChromeNotification(notification);
+                }.bind(this), 2000);
+            }.bind(this));
+
+        },
+
+        /**
+         * Handle click of a Chrome Notification
+         * @param notification
+         * @private
+         */
+        _handleClickOnChromeNotification: function(notification){
+            var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", notification);
+            window.location.replace(url);
+            this._onURLLocationChanged();
+        },
+
         /**
          * Open Notification
          * @param notification
@@ -684,6 +793,8 @@
 
                 }.bind(this);
             }
+
+            this._refreshBadge();
 
         },
 

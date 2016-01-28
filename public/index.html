@@ -72,7 +72,8 @@
 					appSecret: '302d94942a158d4d493020e30ab44fa92770d7d41a436e405e85e4509c9ac854',
 					allowSilent: true,
 					soundsDir: '/resources/sounds/',
-					serviceWorker: "/resources/js/push-worker.js",
+					serviceWorker: "push-worker.js",
+					serviceWorkerScope: "./",
 					geolocationOptions: {
 						timeout: 60000,
 						enableHighAccuracy: true,
@@ -115,6 +116,7 @@
 					}, function(error){
 						console.log(error);
 					});
+
 				});
 
 				$("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
@@ -135,7 +137,15 @@
 				});
 
 				$("#myapp").bind("notificare:didOpenNotification", function(event, data) {
-					instance.notificare("log", data);
+
+					instance.notificare("fetchInbox", function(inboxItems){
+
+						refreshInbox(inboxItems);
+
+					}, function(error){
+						console.log(error);
+					});
+
 				});
 
 				$("#myapp").bind("notificare:didUpdateBadge", function(event, data) {
