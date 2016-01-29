@@ -181,6 +181,7 @@
                             if(data && data.length > 1){
                                 switch(data[0]) {
                                     case 'notificationclick':
+                                        console.log('notification clicked');
                                         this._handleClickOnChromeNotification(data[1]);
                                         break;
                                     case 'notificationreceived':
@@ -743,6 +744,7 @@
                 }.bind(this)
             }).done(function( msg ) {
                 $(this.element).trigger("notificare:didOpenNotification", msg.notification);
+                this._refreshBadge();
                 this._logNotificationEvents(msg);
             }.bind(this)).fail(function( msg ) {
                 setTimeout(function() {
@@ -1228,7 +1230,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "DELETE",
-                    url: this.options.apiUrl + '/notification/inbox/' + inboxItem,
+                    url: this.options.apiUrl + '/notification/inbox/' + inboxItem._id,
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)

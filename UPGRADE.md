@@ -117,7 +117,7 @@ You can also remove an item from the inbox by invoking the following method:
 
 ```javascript
 
-    instance.notificare("removeFromInbox", inboxItem._id, function(msg){
+    instance.notificare("removeFromInbox", inboxItem, function(msg){
 
         //Message is removed
 

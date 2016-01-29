@@ -6,14 +6,17 @@
  *  copyright 2015 Notificare
  */
 
+var theConfig = null;
+var theApplication = null;
 
 self.addEventListener('push', function (event) {
 
     event.waitUntil(
-
+        
         fetch('/config.json').then(function(response) {
             return response.json();
         }).then(function(config) {
+            theConfig = config;
             fetch(config.apiUrl + '/application/info', {
                 headers: new Headers({
                     "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
@@ -23,57 +26,55 @@ self.addEventListener('push', function (event) {
             }).then(function(info) {
 
                 var application = info.application;
+                theApplication = application;
 
                 self.registration.pushManager.getSubscription().then(function(data){
 
-                    fetch(config.apiUrl + '/notification/inbox/fordevice/' + data.endpoint.split('/').pop() + '?skip=0&limit=1',{
+                    fetch(config.apiUrl + '/notification/inbox/fordevice/' + getPushToken(data) + '?skip=0&limit=1',{
                         headers: new Headers({
                             "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
                         })
                     }).then(function(response) {
+                        return response.json();
+                    }).then(function(data) {
 
-                        // Examine the text in the response
-                        return response.json().then(function(data) {
+                        if(data && data.inboxItems && data.inboxItems.length > 0){
+                            var title = application.name;
+                            var message = data.inboxItems[0].message;
+                            var icon = config.awsStorage + application.websitePushConfig.icon;
+                            var notificationTag = data.inboxItems[0].notification;
 
-                            if(data && data.inboxItems && data.inboxItems.length > 0){
-                                var title = application.name;
-                                var message = data.inboxItems[0].message;
-                                var icon = config.awsStorage + application.websitePushConfig.icon;
-                                var notificationTag = data.inboxItems[0].notification;
-
-                                self.clients.matchAll().then(function(clients) {
-                                    clients.forEach(function(client) {
-                                        client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
-                                    });
+                            self.clients.matchAll().then(function(clients) {
+                                clients.forEach(function(client) {
+                                    client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
                                 });
+                            });
 
-                                return self.registration.showNotification(title, {
-                                    body: message,
-                                    icon: icon,
-                                    tag: notificationTag
-                                });
-                            }
-
-                            return null;
-                        });
+                            return self.registration.showNotification(title, {
+                                body: message,
+                                icon: icon,
+                                tag: notificationTag
+                            });
+                        }
                     }).catch(function(err) {
                         console.log('Notificare: Failed to fetch message', err);
-                        return null;
+                        //return null;
                     })
                 }).catch(function(e){
                     console.log('Notificare: Failed to get subscription', e);
-                    return null;
+                    //return null;
                 })
 
             }).catch(function(e){
                 console.log('Notificare: Failed to get application info', e);
-                return null;
+                //return null;
             })
 
         }).catch(function(){
             console.log('Notificare: Failed to get config.js', e);
-            return null;
+            //return null;
         })
+
     );
 });
 
@@ -83,56 +84,79 @@ self.addEventListener('notificationclick', function (event) {
     event.notification.close();
 
     event.waitUntil(
-        clients.matchAll({
+
+        self.clients.matchAll({
             type: "window"
         })
         .then(function(clientList) {
 
-            fetch('/config.json').then(function(response) {
-                return response.json();
-            }).then(function(config) {
-                fetch(config.apiUrl + '/application/info', {
-                    headers: new Headers({
-                        "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
-                    })
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(info) {
-                    console.log(clientList);
-                    clientList.forEach(function(client) {
-                        console.log(client);
-                        if(event.notification.tag != 'user_visible_auto_notification'){
+            clientList.forEach(function(client) {
 
-                            if (client  && client.url == config.appHost + '/' && 'focus' in client){
-                                client.postMessage('notificationclick:' + event.notification.tag);
-                                return client.focus();
-                            }
-                        }
-                    });
-
-                    if (clientList.length == 0) {
-                        var url = info.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
-                        return clients.openWindow(url);
+                if(event.notification.tag != 'user_visible_auto_notification'){
+                    if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
+                        client.postMessage('notificationclick:' + event.notification.tag);
+                        return client.focus();
                     }
+                }
+            });
 
-                }).catch(function(e){
-                    console.log('Notificare: Failed to get application info', e);
-                    return null;
-                })
-
-            }).catch(function(){
-                console.log('Notificare: Failed to get config.js', e);
-                return null;
-            })
+            if (clientList.length == 0) {
+                var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+                return clients.openWindow(url);
+            }
 
         })
+
+        //fetch('/config.json').then(function(response) {
+        //    return response.json();
+        //}).then(function(config) {
+        //    fetch(config.apiUrl + '/application/info', {
+        //        headers: new Headers({
+        //            "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
+        //        })
+        //    }).then(function(response) {
+        //        return response.json();
+        //    }).then(function(info) {
+        //
+        //        var application = info.application;
+        //
+        //        self.clients.matchAll({
+        //            type: "window"
+        //        })
+        //        .then(function(clientList) {
+        //
+        //            clientList.forEach(function(client) {
+        //                console.log(client, event.notification.tag, ('focus' in client));
+        //                if(event.notification.tag != 'user_visible_auto_notification'){
+        //                    if (client  && client.url == config.appHost + '/' && 'focus' in client){
+        //                        client.postMessage('notificationclick:' + event.notification.tag);
+        //                        return client.focus();
+        //                    }
+        //                }
+        //            });
+        //
+        //            if (clientList.length == 0) {
+        //                var url = application.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+        //                return clients.openWindow(url);
+        //            }
+        //
+        //        })
+        //
+        //    }).catch(function(e){
+        //        console.log('Notificare: Failed to get application info', e);
+        //        return null;
+        //    })
+        //
+        //}).catch(function(){
+        //    console.log('Notificare: Failed to get config.js', e);
+        //    return null;
+        //})
 
     );
 });
 
-// refresh caches
+//Set the callback for the activate step
 self.addEventListener('activate', function (event) {
-    //console.log(event);
     clients.claim();
     clients.matchAll().then(function(clients) {
         clients.forEach(function(client) {
@@ -144,7 +168,7 @@ self.addEventListener('activate', function (event) {
 // Set the callback for the install step
 self.addEventListener('install', function(event) {
     // Perform install steps
-    //console.log(event);
+    event.waitUntil(self.skipWaiting());
 });
 
 
@@ -162,3 +186,19 @@ self.addEventListener("message", function(e) {
         break;
     }
 });
+
+/**
+ * Handles Device Token
+ * @param deviceToken
+ * @returns {string}
+ */
+function getPushToken(deviceToken) {
+    var pushToken = '';
+    if (deviceToken.subscriptionId) {
+        pushToken = deviceToken.subscriptionId;
+    }
+    else {
+        pushToken = deviceToken.endpoint.split('/').pop();
+    }
+    return pushToken;
+}
