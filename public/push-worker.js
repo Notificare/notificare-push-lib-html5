@@ -12,7 +12,7 @@ var theApplication = null;
 self.addEventListener('push', function (event) {
 
     event.waitUntil(
-        
+
         fetch('/config.json').then(function(response) {
             return response.json();
         }).then(function(config) {
@@ -55,27 +55,34 @@ self.addEventListener('push', function (event) {
                                 icon: icon,
                                 tag: notificationTag
                             });
+                        } else {
+                            return self.registration.showNotification(application.name, {
+                                body: 'We\'ve got a new message',
+                                icon: config.awsStorage + application.websitePushConfig.icon,
+                                tag: 'user_visible_auto_notification'
+                            });
                         }
                     }).catch(function(err) {
                         console.log('Notificare: Failed to fetch message', err);
-                        //return null;
+                        return null;
                     })
                 }).catch(function(e){
                     console.log('Notificare: Failed to get subscription', e);
-                    //return null;
+                    return null;
                 })
 
             }).catch(function(e){
                 console.log('Notificare: Failed to get application info', e);
-                //return null;
+                return null;
             })
 
         }).catch(function(){
             console.log('Notificare: Failed to get config.js', e);
-            //return null;
+            return null;
         })
 
     );
+
 });
 
 
@@ -107,50 +114,6 @@ self.addEventListener('notificationclick', function (event) {
 
         })
 
-        //fetch('/config.json').then(function(response) {
-        //    return response.json();
-        //}).then(function(config) {
-        //    fetch(config.apiUrl + '/application/info', {
-        //        headers: new Headers({
-        //            "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
-        //        })
-        //    }).then(function(response) {
-        //        return response.json();
-        //    }).then(function(info) {
-        //
-        //        var application = info.application;
-        //
-        //        self.clients.matchAll({
-        //            type: "window"
-        //        })
-        //        .then(function(clientList) {
-        //
-        //            clientList.forEach(function(client) {
-        //                console.log(client, event.notification.tag, ('focus' in client));
-        //                if(event.notification.tag != 'user_visible_auto_notification'){
-        //                    if (client  && client.url == config.appHost + '/' && 'focus' in client){
-        //                        client.postMessage('notificationclick:' + event.notification.tag);
-        //                        return client.focus();
-        //                    }
-        //                }
-        //            });
-        //
-        //            if (clientList.length == 0) {
-        //                var url = application.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
-        //                return clients.openWindow(url);
-        //            }
-        //
-        //        })
-        //
-        //    }).catch(function(e){
-        //        console.log('Notificare: Failed to get application info', e);
-        //        return null;
-        //    })
-        //
-        //}).catch(function(){
-        //    console.log('Notificare: Failed to get config.js', e);
-        //    return null;
-        //})
 
     );
 });
