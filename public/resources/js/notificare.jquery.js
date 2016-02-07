@@ -1,5 +1,5 @@
 /*
- *  Notificare JS for jQuery - v1.7.0
+ *  Notificare JS for jQuery - v1.7.1
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.7.0',
+            sdkVersion: '1.7.1',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
@@ -114,6 +114,14 @@
 
         registerForNotifications: function(){
 
+            var isServiceWorkerCapable = false;
+
+            if(this.options.appHost.indexOf('localhost') > -1){
+                isServiceWorkerCapable = true;
+            } else if (this.options.appHost.indexOf('https') > -1){
+                isServiceWorkerCapable = true;
+            }
+
             if(this.applicationInfo.websitePushConfig &&
                 this.applicationInfo.websitePushConfig.icon &&
                 this.applicationInfo.websitePushConfig.allowedDomains.length > 0 &&
@@ -164,6 +172,7 @@
                     'serviceWorker' in navigator &&
                     'showNotification' in ServiceWorkerRegistration.prototype &&
                     'PushManager' in window &&
+                    isServiceWorkerCapable &&
                     this.options.serviceWorker &&
                     this.options.serviceWorkerScope &&
                     this.applicationInfo.websitePushConfig &&
