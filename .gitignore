@@ -4,3 +4,5 @@
 .settings
 .idea
 .project
+manifest.json
+config.json
