@@ -1,6 +1,4 @@
 {
-  "apiUrl": "https://cloud.notifica.re/api",
-  "awsStorage": "https://s3-eu-west-1.amazonaws.com/notificare-storage",
   "appHost": "http://localhost:3333",
   "appVersion": "1.0",
   "appKey": "YOUR APPLICATION KEY",

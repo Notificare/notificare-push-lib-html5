@@ -66,6 +66,13 @@
 
             this._initWithConfig(function(options){
                 this.options = $.extend( {}, defaults, options );
+                if(this.options.useTestEnv){
+                    this.options.apiUrl = "https://cloud-test.notifica.re/api";
+                    this.options.awsStorage = "https://push-test.notifica.re/upload";
+                } else {
+                    this.options.apiUrl = "https://cloud.notifica.re/api";
+                    this.options.awsStorage = "https://push.notifica.re/upload";
+                }
                 this._getApplicationInfo();
             }.bind(this), function(errors){
                 console.log('Notificare: Please make sure you have a config.json file in the root of your webapp');
@@ -547,6 +554,7 @@
                 }.bind(this)
             }).done(function( msg ) {
                 this.applicationInfo = msg.application;
+
                 $(this.element).trigger("notificare:onReady", msg.application);
 
                 this._handleSession();
@@ -643,20 +651,6 @@
          */
         _getNotification: function (notification) {
 
-            this.logEvent({
-                sessionID: this.uniqueId,
-                type: 're.notifica.event.notification.Receive',
-                notification: notification.notificationId || notification.id,
-                userID: this.options.userId || null,
-                deviceID: this._getCookie('uuid')
-            },  function(data){
-
-            }, function(error){
-
-            });
-
-            $(this.element).trigger("notificare:didReceiveNotification", notification);
-
             $.ajax({
                 type: "GET",
                 url: this.options.apiUrl + '/notification/' + notification.id,
@@ -673,6 +667,21 @@
                     }
                     this.showNotification(msg);
                 }
+
+                this.logEvent({
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.notification.Receive',
+                    notification: notification.notificationId || notification.id,
+                    userID: this.options.userId || null,
+                    deviceID: this._getCookie('uuid')
+                },  function(data){
+
+                }, function(error){
+
+                });
+
+                $(this.element).trigger("notificare:didReceiveNotification", notification);
+
             }.bind(this)).fail(function( msg ) {
                 setTimeout(function() {
                     this._getNotification(notification);
@@ -689,18 +698,6 @@
          */
         _getChromeNotification: function (notification) {
 
-            this.logEvent({
-                sessionID: this.uniqueId,
-                type: 're.notifica.event.notification.Receive',
-                notification: notification,
-                userID: this.options.userId || null,
-                deviceID: this._getCookie('uuid')
-            },  function(data){
-
-            }, function(error){
-
-            });
-
             $.ajax({
                 type: "GET",
                 url: this.options.apiUrl + '/notification/' + notification,
@@ -708,6 +705,18 @@
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this)
             }).done(function( msg ) {
+
+                this.logEvent({
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.notification.Receive',
+                    notification: notification,
+                    userID: this.options.userId || null,
+                    deviceID: this._getCookie('uuid')
+                },  function(data){
+
+                }, function(error){
+
+                });
 
                 $(this.element).trigger("notificare:didReceiveNotification", msg.notification);
 
@@ -769,46 +778,48 @@
          */
         showNotification: function (msg) {
 
-            if ("Notification" in window) {
+            if (msg && msg.notification && msg.notification.message) {
+                if ("Notification" in window) {
 
-                var n = new Notification(
-                    this.applicationInfo.name,
-                    {
-                        'body': msg.notification.message,
-                        'tag': msg.notification._id,
-                        'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
-                    }
-                );
-                // remove the notification from Notification Center when it is clicked
-                n.onclick = function () {
-                    n.close();
-                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                    window.location.replace(url);
-                    this._onURLLocationChanged();
+                    var n = new Notification(
+                        this.applicationInfo.name,
+                        {
+                            'body': msg.notification.message,
+                            'tag': msg.notification._id,
+                            'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
+                        }
+                    );
+                    // remove the notification from Notification Center when it is clicked
+                    n.onclick = function () {
+                        n.close();
+                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                        window.location.replace(url);
+                        this._onURLLocationChanged();
 
-                }.bind(this);
+                    }.bind(this);
 
-            } else if ("webkitNotifications" in window) {
-                var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
-                n.show();
-                n.onclick = function () {
+                } else if ("webkitNotifications" in window) {
+                    var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
+                    n.show();
+                    n.onclick = function () {
 
-                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                    window.location.replace(url);
-                    this._onURLLocationChanged();
+                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                        window.location.replace(url);
+                        this._onURLLocationChanged();
 
-                }.bind(this);
+                    }.bind(this);
 
-            } else if ("mozNotification" in navigator) {
-                var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
-                n.show();
-                n.onclick = function () {
+                } else if ("mozNotification" in navigator) {
+                    var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
+                    n.show();
+                    n.onclick = function () {
 
-                    var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                    window.location.replace(url);
-                    this._onURLLocationChanged();
+                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                        window.location.replace(url);
+                        this._onURLLocationChanged();
 
-                }.bind(this);
+                    }.bind(this);
+                }
             }
 
             this._refreshBadge();
@@ -1433,6 +1444,70 @@
             } else {
                 errors("Notificare: Calling reply before registering a deviceId");
             }
+        },
+
+        /**
+         * Fetch a list of assets for a group
+         * @param group name
+         */
+        fetchAssets: function (group, success, errors) {
+
+            if (this.applicationInfo.services.storage) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/asset/forgroup/' + group,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+
+                    var assets = [];
+
+                    $.each( msg.assets, function( index, asset ){
+                        assets.push({
+                            title: asset.title,
+                            description: asset.description,
+                            url: 'https://push.notifica.re/asset/file/' + asset.key,
+                            metaData: asset.metaData,
+                            button: asset.button
+                        });
+                    }.bind(this));
+
+                    success(assets);
+                }.bind(this))
+                .fail(function( msg ) {
+                    errors("Notificare: Failed to get assets for this group");
+                }.bind(this))
+            } else {
+                errors("Notificare: This is a add-on service, please activate in order to use this method");
+            }
+
+        },
+
+
+        /**
+         * Fetch a specific pass by serial
+         * @param serial
+         */
+        fetchPass: function (serial, success, errors) {
+
+            if (this.applicationInfo.services.passbook) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/pass/forserial/' + serial,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                        success(msg.pass);
+                    }.bind(this))
+                    .fail(function( msg ) {
+                        errors("Notificare: Failed to get pass for this serial");
+                    }.bind(this))
+            } else {
+                errors("Notificare: This is a add-on service, please activate in order to use this method");
+            }
+
         },
 
         _trigger: function (type, region, success, errors) {

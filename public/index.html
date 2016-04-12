@@ -71,6 +71,12 @@
 				$("#myapp").bind("notificare:onReady", function(event, data) {
 					instance.notificare("registerForNotifications");
 
+					instance.notificare("fetchAssets", "test", function(assets){
+						console.log(assets);
+					}, function(error){
+						console.log(error);
+					});
+
 				});
 
 				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {

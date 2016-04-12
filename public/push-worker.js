@@ -16,7 +16,17 @@ self.addEventListener('push', function (event) {
         fetch('/config.json').then(function(response) {
             return response.json();
         }).then(function(config) {
+
+            if(config.useTestEnv){
+                config.apiUrl = "https://cloud-test.notifica.re/api";
+                config.awsStorage = "https://push-test.notifica.re/upload";
+            } else {
+                config.apiUrl = "https://cloud.notifica.re/api";
+                config.awsStorage = "https://push.notifica.re/upload";
+            }
+
             theConfig = config;
+
             fetch(config.apiUrl + '/application/info', {
                 headers: new Headers({
                     "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
@@ -56,11 +66,7 @@ self.addEventListener('push', function (event) {
                                 tag: notificationTag
                             });
                         } else {
-                            return self.registration.showNotification(application.name, {
-                                body: 'We\'ve got a new message',
-                                icon: config.awsStorage + application.websitePushConfig.icon,
-                                tag: 'user_visible_auto_notification'
-                            });
+                            return null;
                         }
                     }).catch(function(err) {
                         console.log('Notificare: Failed to fetch message', err);
