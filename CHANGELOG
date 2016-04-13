@@ -1,9 +1,10 @@
-1.8.0 - 13-04-2016 Joris Verbogt
+1.8.0 - 13-04-2016 Joel Oliveira
 - Added pass for serial method
 - Added asset for group method
 - Only refresh inbox when silent notification in Websockets
 - Added new config.json property for test environment
 - Fixed issue with receive event being logged every time get notification was retried
+- Added fallback when new Notification is not possible (Chrome in Android)
 
 1.7.2 - 11-04-2016 Joris Verbogt
 - Removed json files, replaced by default versions

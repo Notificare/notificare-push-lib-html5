@@ -781,22 +781,36 @@
             if (msg && msg.notification && msg.notification.message) {
                 if ("Notification" in window) {
 
-                    var n = new Notification(
-                        this.applicationInfo.name,
-                        {
-                            'body': msg.notification.message,
-                            'tag': msg.notification._id,
-                            'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
-                        }
-                    );
-                    // remove the notification from Notification Center when it is clicked
-                    n.onclick = function () {
-                        n.close();
-                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                        window.location.replace(url);
-                        this._onURLLocationChanged();
+                    try {
+                        var n = new Notification(
+                            this.applicationInfo.name,
+                            {
+                                'body': msg.notification.message,
+                                'tag': msg.notification._id,
+                                'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
+                            }
+                        );
+                        // remove the notification from Notification Center when it is clicked
+                        n.onclick = function () {
+                            n.close();
+                            var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                            window.location.replace(url);
+                            this._onURLLocationChanged();
 
-                    }.bind(this);
+                        }.bind(this);
+
+                    } catch (e) {
+
+                        //If native Notification is not possible use the window.confirm
+                        var n = window.confirm(msg.notification.message);
+
+                        if (n == true) {
+                            var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                            window.location.replace(url);
+                            this._onURLLocationChanged();
+                        }
+
+                    }
 
                 } else if ("webkitNotifications" in window) {
                     var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
@@ -810,6 +824,7 @@
                     }.bind(this);
 
                 } else if ("mozNotification" in navigator) {
+
                     var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
                     n.show();
                     n.onclick = function () {
@@ -819,6 +834,17 @@
                         this._onURLLocationChanged();
 
                     }.bind(this);
+
+                } else {
+
+                    //If native Notification is not possible use the window.confirm
+                    var n = window.confirm(msg.notification.message);
+
+                    if (n == true) {
+                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
+                        window.location.replace(url);
+                        this._onURLLocationChanged();
+                    }
                 }
             }
 
