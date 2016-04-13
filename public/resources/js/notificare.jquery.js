@@ -1,10 +1,10 @@
 /*
- *  Notificare JS for jQuery - v1.7.1
+ *  Notificare JS for jQuery - v1.8.0
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
  *  @author Joel Oliveira joel@notifica.re
- *  copyright 2015 Notificare
+ *  copyright 2016 Notificare
  */
 
 ;(function ( $, window, document, undefined ) {
@@ -47,6 +47,7 @@
             this.safariPush = false;
             this.chromePush = false;
 
+            //Initial set of regions, location and badge
             if(typeof(Storage) !== "undefined") {
                 if(!localStorage.getItem("regions")){
                     localStorage.setItem("regions", JSON.stringify([]));
@@ -554,6 +555,7 @@
                 }.bind(this)
             }).done(function( msg ) {
                 this.applicationInfo = msg.application;
+                this.services = msg.application.services;
 
                 $(this.element).trigger("notificare:onReady", msg.application);
 
