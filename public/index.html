@@ -42,8 +42,8 @@
 				<div class="jumbotron">
 					<h1>My Banner</h1>
 					<p>Quickly bootstrap your html project</p>
-					<p>
-						<div class="btn-group">
+					<div id="visible-ui" style="display: none;">
+						<div id="is-registered" class="btn-group">
 							<button class="btn btn-default btn-lg dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								Inbox <span id="badge" class="badge"></span> <span class="caret"></span>
 							</button>
@@ -52,8 +52,10 @@
 								<li><a id="clear-inbox" href="#">Clear Inbox</a></li>
 							</ul>
 						</div>
+						<a id="disable-notifications" class="btn btn-lg btn-danger" href="#" role="button">Disable Notifications</a>
+						<a id="enable-notifications" class="btn btn-lg btn-success" href="#" role="button">Enable Notifications</a>
 
-					</p>
+					</div>
 				</div>
 			</div> <!-- /container -->
 		</section>
@@ -69,7 +71,19 @@
 				var instance = $('#myapp').notificare();
 
 				$("#myapp").bind("notificare:onReady", function(event, data) {
-					instance.notificare("registerForNotifications");
+
+					if(instance.notificare("isDeviceRegistered")){
+						$('#is-registered').show();
+						$('#enable-notifications').hide();
+						$('#disable-notifications').show();
+						instance.notificare("registerForNotifications");
+					} else {
+						$('#is-registered').hide();
+						$('#enable-notifications').show();
+						$('#disable-notifications').hide();
+					}
+
+					$('#visible-ui').show();
 
 					instance.notificare("fetchAssets", "test", function(assets){
 						console.log(assets);
@@ -88,6 +102,10 @@
 				$("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
 					//Here it's safe to register tags
 
+					$('#is-registered').show();
+					$('#enable-notifications').hide();
+					$('#disable-notifications').show();
+
 					instance.notificare("getTags", function(tags){
 						//console.log(tags);
 					}, function(error){
@@ -95,7 +113,7 @@
 					});
 
 					instance.notificare("startLocationUpdates", function(data){
-						//console.log(data);
+						console.log(data);
 					}, function(error){
 						console.log(error);
 					});
@@ -213,6 +231,28 @@
 
 					}, function(error){
 						console.log(error);
+					});
+
+					return false;
+				});
+
+
+
+				$(document).on('click', '#enable-notifications', function (){
+
+					instance.notificare("registerForNotifications");
+
+					return false;
+				});
+
+				$(document).on('click', '#disable-notifications', function (){
+
+					instance.notificare("unregisterDevice", function(msg){
+						$('#is-registered').hide();
+						$('#enable-notifications').show();
+						$('#disable-notifications').hide();
+					}, function(errors){
+
 					});
 
 					return false;

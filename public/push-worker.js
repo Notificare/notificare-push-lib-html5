@@ -13,77 +13,79 @@ self.addEventListener('push', function (event) {
 
     event.waitUntil(
 
-        fetch('/config.json').then(function(response) {
-            return response.json();
-        }).then(function(config) {
+        self.registration.pushManager.getSubscription().then(function(deviceSubscription){
 
-            if(config.useTestEnv){
-                config.apiUrl = "https://cloud-test.notifica.re/api";
-                config.awsStorage = "https://push-test.notifica.re/upload";
-            } else {
-                config.apiUrl = "https://cloud.notifica.re/api";
-                config.awsStorage = "https://push.notifica.re/upload";
-            }
-
-            theConfig = config;
-
-            fetch(config.apiUrl + '/application/info', {
-                headers: new Headers({
-                    "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
-                })
-            }).then(function(response) {
+            return fetch('/config.json').then(function(response) {
                 return response.json();
-            }).then(function(info) {
+            }).then(function(config) {
 
-                var application = info.application;
-                theApplication = application;
+                if(config.useTestEnv){
+                    config.apiUrl = "https://cloud-test.notifica.re/api";
+                    config.awsStorage = "https://push-test.notifica.re/upload";
+                } else {
+                    config.apiUrl = "https://cloud.notifica.re/api";
+                    config.awsStorage = "https://push.notifica.re/upload";
+                }
 
-                self.registration.pushManager.getSubscription().then(function(data){
+                theConfig = config;
 
-                    fetch(config.apiUrl + '/notification/inbox/fordevice/' + getPushToken(data) + '?skip=0&limit=1',{
-                        headers: new Headers({
-                            "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
-                        })
-                    }).then(function(response) {
-                        return response.json();
-                    }).then(function(data) {
-
-                        if(data && data.inboxItems && data.inboxItems.length > 0){
-                            var title = application.name;
-                            var message = data.inboxItems[0].message;
-                            var icon = config.awsStorage + application.websitePushConfig.icon;
-                            var notificationTag = data.inboxItems[0].notification;
-
-                            self.clients.matchAll().then(function(clients) {
-                                clients.forEach(function(client) {
-                                    client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
-                                });
-                            });
-
-                            return self.registration.showNotification(title, {
-                                body: message,
-                                icon: icon,
-                                tag: notificationTag
-                            });
-                        } else {
-                            return null;
-                        }
-                    }).catch(function(err) {
-                        console.log('Notificare: Failed to fetch message', err);
-                        return null;
+                return fetch(config.apiUrl + '/application/info', {
+                    headers: new Headers({
+                        "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
                     })
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(info) {
+
+                    var application = info.application;
+                    theApplication = application;
+
+                        return fetch(config.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
+                            headers: new Headers({
+                                "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
+                            })
+                        }).then(function(response) {
+                            return response.json();
+                        }).then(function(data) {
+
+                            if(data && data.inboxItems && data.inboxItems.length > 0){
+                                var title = application.name;
+                                var message = data.inboxItems[0].message;
+                                var icon = config.awsStorage + application.websitePushConfig.icon;
+                                var notificationTag = data.inboxItems[0].notification;
+
+                                self.clients.matchAll().then(function(clients) {
+                                    clients.forEach(function(client) {
+                                        client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
+                                    });
+                                });
+
+                                return self.registration.showNotification(title, {
+                                    body: message,
+                                    icon: icon,
+                                    tag: notificationTag
+                                });
+                            } else {
+                                return null;
+                            }
+                        }).catch(function(err) {
+                            console.log('Notificare: Failed to fetch message', err);
+                            return null;
+                        })
+
+
                 }).catch(function(e){
-                    console.log('Notificare: Failed to get subscription', e);
+                    console.log('Notificare: Failed to get application info', e);
                     return null;
                 })
 
-            }).catch(function(e){
-                console.log('Notificare: Failed to get application info', e);
+            }).catch(function(){
+                console.log('Notificare: Failed to get config.js', e);
                 return null;
             })
 
-        }).catch(function(){
-            console.log('Notificare: Failed to get config.js', e);
+        }).catch(function(e){
+            console.log('Notificare: Failed to get subscription', e);
             return null;
         })
 
