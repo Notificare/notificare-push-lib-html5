@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.8.1',
+            sdkVersion: '1.8.2',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
@@ -1457,8 +1457,17 @@
 
                 if(msg.status === 'OK' && msg.results && msg.results.length > 0){
 
+                    var country;
+
+                    for (i=0; i< msg.results[0].address_components.length; i++){
+                        for (j=0; j< msg.results[0].address_components[i].types.length; j++){
+                            if(msg.results[0].address_components[i].types[j] == "country")
+                                country = msg.results[0].address_components[i].short_name;
+                        }
+                    }
+
                     callback({
-                        country: msg.results[msg.results.length - 1].address_components[0].short_name
+                        country: country
                     });
                 } else {
                     callback({

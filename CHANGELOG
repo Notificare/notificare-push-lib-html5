@@ -1,3 +1,6 @@
+1.8.2 - 24-05-2016 Joel Oliveira
+- Fixed problem with retrieving country from gmaps geocode
+
 1.8.1 - 19-04-2016 Joel Oliveira
 - Added unregisterDevice method
 - Added fixes for the push worker to avoid site updated in bg message
