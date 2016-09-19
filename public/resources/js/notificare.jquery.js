@@ -569,16 +569,13 @@
 
                 }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
 
-                    switch (jqXHR.status) {
-                        case 401:
-                            break;
-                        case 0:
-                            break;
-                        default:
-                            setTimeout(function() {
-                                this._getApplicationInfo();
-                            }.bind(this), 2000);
-                            break;
+                    if( jqXHR.status == 502 ||
+                        jqXHR.status == 503 ||
+                        jqXHR.status == 504 ||
+                        jqXHR.status < 0  ) {
+                        setTimeout(function() {
+                            this._getApplicationInfo();
+                        }.bind(this), 2000);
                     }
 
                 }.bind(this));
