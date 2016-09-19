@@ -1168,6 +1168,93 @@
         },
 
         /**
+         * Fetch Do Not Disturb
+         * @param success
+         * @param errors
+         */
+        fetchDoNotDisturb: function (success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/dnd',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                        success(msg.dnd);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to get dnd for device");
+                    }.bind(this));
+            } else {
+                errors('Notificare: Calling fetch dnd before having a deviceId');
+            }
+        },
+        /**
+         * Update Do Not Disturb
+         * @param data
+         * @param success
+         * @param errors
+         */
+        updateDoNotDisturb: function (start, end, success, errors) {
+            if (this._getCookie('uuid')) {
+
+                if (start && end) {
+
+                    $.ajax({
+                        type: "PUT",
+                        url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/dnd',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                        }.bind(this),
+                        data: JSON.stringify({
+                            start: start,
+                            end: end
+                        }),
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json"
+                    }).done(function( msg ) {
+                            success(msg);
+                        }.bind(this))
+                        .fail(function(  jqXHR, textStatus, errorThrown ) {
+                            errors("Notificare: Failed to update dnd for device");
+                        }.bind(this));
+                } else {
+                    errors("Notificare: Calling update dnd without a start and end time");
+                }
+
+            } else {
+                errors("Notificare: Calling update dnd before registering a deviceId");
+            }
+        },
+        /**
+         * Clear Do Not Disturb
+         * @param data
+         * @param success
+         * @param errors
+         */
+        clearDoNotDisturb: function (success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "PUT",
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/cleardnd',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
+                    data: null,
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
+                }).done(function( msg ) {
+                        success(msg);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to clear dnd for device");
+                    }.bind(this));
+            } else {
+                errors("Notificare: Calling clear dnd before registering a deviceId");
+            }
+        },
+        /**
          * Start Location Updates
          */
         startLocationUpdates: function (success, errors) {

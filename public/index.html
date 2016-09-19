@@ -108,6 +108,27 @@
 					});
 					*/
 
+
+					instance.notificare("fetchDoNotDisturb", function(dnd){
+						console.log(dnd);
+					}, function(error){
+						console.log(error);
+					});
+
+					/*
+					instance.notificare("updateDoNotDisturb", "01:00" , "07:00" , function(msg){
+						console.log(msg);
+					}, function(error){
+						console.log(error);
+					});
+
+					instance.notificare("clearDoNotDisturb" , function(msg){
+						console.log(msg);
+					}, function(error){
+						console.log(error);
+					});
+					*/
+
 				});
 
 				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
