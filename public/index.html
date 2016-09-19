@@ -91,6 +91,23 @@
 						console.log(error);
 					});
 
+					/*
+					instance.notificare("fetchUserData", function(userData){
+						console.log(userData);
+					}, function(error){
+						console.log(error);
+					});
+
+					instance.notificare("updateUserData", {
+						firstName: "PIU",
+						lastName: "CAPIUE"
+					}, function(msg){
+						console.log(msg);
+					}, function(error){
+						console.log(error);
+					});
+					*/
+
 				});
 
 				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {

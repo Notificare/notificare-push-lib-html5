@@ -1,5 +1,5 @@
 /*
- *  Notificare JS for jQuery - v1.8.0
+ *  Notificare JS for jQuery - v1.9.0
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.8.2',
+            sdkVersion: '1.9.0',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
@@ -76,7 +76,7 @@
                 }
                 this._getApplicationInfo();
             }.bind(this), function(errors){
-                console.log('Notificare: Please make sure you have a config.json file in the root of your webapp');
+                console.warn('Notificare: Please make sure you have a config.json file in the root of your webapp');
             }.bind(this));
 
 
@@ -536,7 +536,7 @@
 
                 success(msg);
 
-            }.bind(this)).fail(function( msg ) {
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors(msg);
             }.bind(this));
 
@@ -547,27 +547,48 @@
          */
         _getApplicationInfo: function () {
 
-            $.ajax({
-                type: "GET",
-                url: this.options.apiUrl + '/application/info',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                }.bind(this)
-            }).done(function( msg ) {
-                this.applicationInfo = msg.application;
-                this.services = msg.application.services;
+            if (this.options.appKey && this.options.appSecret) {
 
-                $(this.element).trigger("notificare:onReady", msg.application);
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/application/info',
+                    crossDomain: true,
+                    beforeSend: function (xhr) {
+                        xhr.withCredentials = true;
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                    this.applicationInfo = msg.application;
+                    this.services = msg.application.services;
 
-                this._handleSession();
+                    $(this.element).trigger("notificare:onReady", msg.application);
 
-                this._onURLLocationChanged();
+                    this._handleSession();
 
-            }.bind(this)).fail(function( msg ) {
-                setTimeout(function() {
-                    this._getApplicationInfo();
-                }.bind(this), 2000);
-            }.bind(this));
+                    this._onURLLocationChanged();
+
+                }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+                    switch (jqXHR.status) {
+                        case 401:
+                            break;
+                        case 0:
+                            break;
+                        default:
+                            setTimeout(function() {
+                                this._getApplicationInfo();
+                            }.bind(this), 2000);
+                            break;
+                    }
+
+                }.bind(this));
+
+            } else {
+
+                console.warn('Notificare: Please make sure you provide proper application keys');
+
+            }
+
 
         },
 
@@ -642,7 +663,7 @@
                 this._setCookie(uuid);
                 this._refreshBadge();
                 $(this.element).trigger("notificare:didRegisterDevice", uuid);
-            }.bind(this)).fail(function( msg ) {
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 $(this.element).trigger("notificare:didFailToRegisterDevice", uuid);
             }.bind(this));
         },
@@ -666,7 +687,7 @@
                     $(this.element).trigger("notificare:didUpdateBadge", 0);
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to delete a UUID");
                 }.bind(this));
             }
@@ -710,7 +731,7 @@
 
                 $(this.element).trigger("notificare:didReceiveNotification", notification);
 
-            }.bind(this)).fail(function( msg ) {
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 setTimeout(function() {
                     this._getNotification(notification);
                 }.bind(this), 2000);
@@ -757,7 +778,7 @@
                 }
 
                 this._refreshBadge();
-            }.bind(this)).fail(function( msg ) {
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 setTimeout(function() {
                     this._getChromeNotification(notification);
                 }.bind(this), 2000);
@@ -799,7 +820,7 @@
                 $(this.element).trigger("notificare:didOpenNotification", msg.notification);
                 this._refreshBadge();
                 this._logNotificationEvents(msg);
-            }.bind(this)).fail(function( msg ) {
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 setTimeout(function() {
                     this.openNotification(notification);
                 }.bind(this), 2000);
@@ -951,7 +972,7 @@
             }).done(function( msg ) {
                 success(msg);
             }.bind(this))
-            .fail(function( msg ) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors('Notificare: Failed to register log');
             }.bind(this));
         },
@@ -980,7 +1001,7 @@
             }).done(function( msg ) {
                 success(msg);
             }.bind(this))
-            .fail(function( msg ) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors('Notificare: Failed to register custom event');
             }.bind(this));
         },
@@ -1000,7 +1021,7 @@
                 }).done(function( msg ) {
                     success(msg.tags);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to get tags for device");
                 }.bind(this));
             } else {
@@ -1029,7 +1050,7 @@
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to add tags to device");
                 }.bind(this));
             } else {
@@ -1059,7 +1080,7 @@
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors(null);
                 }.bind(this));
             } else {
@@ -1086,11 +1107,63 @@
                 }).done(function( msg ) {
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Failed to clear device tags.");
                 }.bind(this));
             } else {
                 errors("Notificare: Calling clearTags before registering a deviceId");
+            }
+        },
+
+
+        /**
+         * Fetch User Data
+         * @param success
+         * @param errors
+         */
+        fetchUserData: function (success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/userdata',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                        success(msg.userData);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to get user data for device");
+                    }.bind(this));
+            } else {
+                errors('Notificare: Calling fetch user data before having a deviceId');
+            }
+        },
+        /**
+         * Update User Data
+         * @param data
+         * @param success
+         * @param errors
+         */
+        updateUserData: function (data, success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "PUT",
+                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/userdata',
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
+                    data: JSON.stringify(data),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
+                }).done(function( msg ) {
+                        success(msg);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to update user data for device");
+                    }.bind(this));
+            } else {
+                errors("Notificare: Calling update user data before registering a deviceId");
             }
         },
 
@@ -1215,7 +1288,7 @@
                 }));
                 success(JSON.parse(localStorage.getItem("position")));
             }.bind(this))
-            .fail(function( msg ) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors(null);
             }.bind(this));
 
@@ -1237,7 +1310,7 @@
                 }).done(function( msg ) {
                         success(msg.inboxItems);
                     }.bind(this))
-                    .fail(function( msg ) {
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
                         errors("Notificare: Failed to get the inbox");
                     }.bind(this));
             } else {
@@ -1294,7 +1367,7 @@
                     this._refreshBadge();
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to clear the inbox");
                 }.bind(this));
             } else {
@@ -1319,7 +1392,7 @@
                     this._refreshBadge();
                     success(msg);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to remove item from inbox");
                 }.bind(this));
             } else {
@@ -1347,7 +1420,7 @@
                     localStorage.setItem("badge", msg.unread);
                     $(this.element).trigger("notificare:didUpdateBadge", msg.unread);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
                 }.bind(this));
             } else {
@@ -1403,7 +1476,7 @@
             }).done(function( msg ) {
                 success(msg.regions);
             }.bind(this))
-            .fail(function( msg ) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors('Notificare: Failed to retrieve nearest regions');
             }.bind(this));
 
@@ -1476,7 +1549,7 @@
                 }
 
             }.bind(this))
-            .fail(function( msg ) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 callback({
                     country: null
                 });
@@ -1508,7 +1581,7 @@
                 }).done(function (msg) {
                     success(msg);
                 }.bind(this))
-                .fail(function (msg) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors('Notificare: Failed to register reply');
                 }.bind(this));
             } else {
@@ -1545,7 +1618,7 @@
 
                     success(assets);
                 }.bind(this))
-                .fail(function( msg ) {
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors("Notificare: Failed to get assets for this group");
                 }.bind(this))
             } else {
@@ -1571,7 +1644,7 @@
                 }).done(function( msg ) {
                         success(msg.pass);
                     }.bind(this))
-                    .fail(function( msg ) {
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
                         errors("Notificare: Failed to get pass for this serial");
                     }.bind(this))
             } else {
@@ -1597,7 +1670,7 @@
             }).done(function (msg) {
                 success(msg);
             }.bind(this))
-            .fail(function (msg) {
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors('Notificare: Failed to trigger region');
             }.bind(this));
 
