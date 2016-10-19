@@ -60,11 +60,29 @@ self.addEventListener('push', function (event) {
                                     });
                                 });
 
-                                return self.registration.showNotification(title, {
-                                    body: message,
-                                    icon: icon,
-                                    tag: notificationTag
+                                return fetch(config.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
+                                    headers: new Headers({
+                                        "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
+                                    })
+                                }).then(function(response) {
+                                    return response.json();
+                                }).then(function(data) {
+
+                                    var actions = [];
+                                    data.notification.actions.forEach(function(a){
+                                        actions.push({
+                                            title: a.label,
+                                            action: a.label
+                                        });
+                                    });
+                                    return self.registration.showNotification(title, {
+                                        body: message,
+                                        icon: icon,
+                                        tag: notificationTag,
+                                        actions: actions
+                                    });
                                 });
+
                             } else {
                                 return null;
                             }
@@ -97,6 +115,12 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
 
     event.notification.close();
+
+    self.clients.matchAll().then(function(clients) {
+        clients.forEach(function(client) {
+            client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
+        });
+    });
 
     event.waitUntil(
 

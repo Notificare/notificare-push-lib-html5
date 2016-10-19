@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.0',
+            sdkVersion: '1.9.1',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
@@ -198,11 +198,19 @@
                             if(data && data.length > 1){
                                 switch(data[0]) {
                                     case 'notificationclick':
-                                        console.log('notification clicked');
                                         this._handleClickOnChromeNotification(data[1]);
                                         break;
                                     case 'notificationreceived':
                                         this._getChromeNotification(data[1]);
+                                        break;
+                                    case 'notificationreplied':
+                                        var action = data[1].split('|');
+                                        this.reply(action[0], action[1], null, function(){}, function(){});
+                                        this._logNotificationEvents({
+                                            notification:{
+                                                _id: action[0]
+                                            }
+                                        });
                                         break;
                                     case 'workeractivated':
                                         break;
@@ -1645,7 +1653,7 @@
          * @param notification
          * @param data
          */
-        reply: function (notification, data, success, errors) {
+        reply: function (notification, label, data, success, errors) {
 
             if (this._getCookie('uuid')) {
                 $.ajax({
@@ -1658,7 +1666,8 @@
                         userID: this.options.userId,
                         deviceID: this._getCookie('uuid'),
                         notification: notification,
-                        data: data
+                        data: data,
+                        label: label
                     }),
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
