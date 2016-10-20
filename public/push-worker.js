@@ -116,38 +116,40 @@ self.addEventListener('notificationclick', function (event) {
 
     event.notification.close();
 
-    self.clients.matchAll().then(function(clients) {
-        clients.forEach(function(client) {
-            client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
-        });
-    });
-
-    event.waitUntil(
-
-        self.clients.matchAll({
-            type: "window"
-        })
-        .then(function(clientList) {
-
-            clientList.forEach(function(client) {
-
-                if(event.notification.tag != 'user_visible_auto_notification'){
-                    if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
-                        client.postMessage('notificationclick:' + event.notification.tag);
-                        return client.focus();
-                    }
-                }
+    if (event.action) {
+        self.clients.matchAll().then(function(clients) {
+            clients.forEach(function(client) {
+                client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
             });
+        });
+    } else {
+        event.waitUntil(
 
-            if (clientList.length == 0) {
-                var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
-                return clients.openWindow(url);
-            }
+            self.clients.matchAll({
+                    type: "window"
+                })
+                .then(function(clientList) {
 
-        })
+                    clientList.forEach(function(client) {
+
+                        if(event.notification.tag != 'user_visible_auto_notification'){
+                            if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
+                                client.postMessage('notificationclick:' + event.notification.tag);
+                                return client.focus();
+                            }
+                        }
+                    });
+
+                    if (clientList.length == 0) {
+                        var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+                        return clients.openWindow(url);
+                    }
+
+                })
 
 
-    );
+        );
+    }
 });
 
 //Set the callback for the activate step

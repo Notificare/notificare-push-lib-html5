@@ -71,13 +71,44 @@
                     this.options.apiUrl = "https://cloud-test.notifica.re/api";
                     this.options.awsStorage = "https://push-test.notifica.re/upload";
                 } else {
-                    this.options.apiUrl = "https://cloud.notifica.re/api";
+                    //this.options.apiUrl = "https://cloud.notifica.re/api";
+                    this.options.apiUrl = "http://localhost:4002/api";
                     this.options.awsStorage = "https://push.notifica.re/upload";
                 }
                 this._getApplicationInfo();
+
+                ///@TESTTTTTT - Remove later
+                $( "form" ).submit(function( event ) {
+
+
+
+                    event.preventDefault();
+
+                    var formData = new FormData();
+                    formData.append('file', $("#fileInput")[0].files[0]);
+
+                    $.ajax({
+                        type: "POST",
+                        url: this.options.apiUrl + '/upload/reply',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                        }.bind(this),
+                        data: formData,
+                        contentType: false,
+                        processData: false
+                    }).done(function( msg ) {
+
+
+                    }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+                    }.bind(this));
+                }.bind(this));
+
             }.bind(this), function(errors){
                 console.warn('Notificare: Please make sure you have a config.json file in the root of your webapp');
             }.bind(this));
+
+
 
 
         },
@@ -844,9 +875,9 @@
                     window.location.replace(action.target);
                 } else if (action.type == "re.notifica.action.Callback") {
 
-                    if (action.camera && action.keyboard) {
+                    if (action.camera && action.keyboard && !action.target) {
 
-                    } else if (action.camera && !action.keyboard) {
+                    } else if (action.camera && !action.keyboard && !action.target) {
 
                         var canvas = $("<canvas>"),
                             context = canvas.get(0).getContext('2d'),
@@ -865,19 +896,89 @@
                                 button.click(function(e){
                                     e.preventDefault();
                                     context.drawImage(video.get(0), 0, 0, 640, 480);
-                                    console.log(canvas.get(0).toDataURL("image/png"));
+
+                                    var dataURL = canvas.get(0).toDataURL("image/png"),
+                                        blob = this._dataURItoBlob(dataURL);
+                                    var formData = new FormData();
+                                    formData.append('file', blob);
+
+                                    $.ajax({
+                                        type: "POST",
+                                        url: this.options.apiUrl + '/upload/reply',
+                                        beforeSend: function (xhr) {
+                                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                                        }.bind(this),
+                                        data: formData,
+                                        contentType: false,
+                                        processData: false
+                                    }).done(function( msg ) {
+
+
+                                    }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+                                    }.bind(this));
+
+                                    //console.log(canvas.get(0).toDataURL("image/png"));
+
                                 }.bind(this));
 
                                 video.get(0).src = window.URL.createObjectURL(stream);
                                 video.get(0).play();
                             }.bind(this));
+
                         }
 
-                    } else if (!action.camera && action.keyboard) {
+                    } else if (!action.camera && action.keyboard && !action.target) {
                         var input = window.prompt("type a reply","");
                         data = {message: input};
                     } else {
-                        //It's a webhook
+
+                        if (action.target) {
+                            var queries, temp, i, l;
+                            data = {};
+                            var queryString =  action.target.split("?");
+
+                            if (queryString.length > 0) {
+                                queries = queryString[1].split("&");
+                                // Convert the array of strings into an object
+                                for ( i = 0, l = queries.length; i < l; i++ ) {
+                                    temp = queries[i].split('=');
+                                    data[temp[0]] = temp[1];
+                                }
+                            }
+                            data.target = queryString[0];
+                            data.label = action.label;
+
+                            if (msg.notification._id) {
+                                data.notificationID = msg.notification._id;
+                            }
+
+                            if (this._getCookie('uuid')) {
+                                data.deviceID = this._getCookie('uuid');
+                            }
+
+                            if (this.options.userId) {
+                                data.userID = this.options.userId;
+                            }
+
+
+                            $.ajax({
+                                type: "POST",
+                                url: this.options.apiUrl + '/reply/webhook',
+                                beforeSend: function (xhr) {
+                                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                                }.bind(this),
+                                data: JSON.stringify(data),
+                                contentType: "application/json; charset=utf-8",
+                                dataType: "json"
+                            }).done(function( msg ) {
+
+
+                            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+                            }.bind(this));
+                        }
+
                     }
 
                 } else if (action.type == "re.notifica.action.Mail") {
@@ -895,8 +996,33 @@
             }
 
         },
-        
 
+        /**
+         * Data URI from Blob
+         * @param dataURI
+         * @returns {*}
+         * @private
+         */
+        _dataURItoBlob: function(dataURI) {
+            // convert base64/URLEncoded data component to raw binary data held in a string
+            var byteString,
+                mimestring
+
+            if(dataURI.split(',')[0].indexOf('base64') !== -1 ) {
+                byteString = atob(dataURI.split(',')[1])
+            } else {
+                byteString = decodeURI(dataURI.split(',')[1])
+            }
+
+            mimestring = dataURI.split(',')[0].split(':')[1].split(';')[0]
+
+            var content = new Array();
+            for (var i = 0; i < byteString.length; i++) {
+                content[i] = byteString.charCodeAt(i)
+            }
+
+            return new Blob([new Uint8Array(content)], {type: mimestring});
+        },
         /**
          * Helper method to check if user is registered
          * @returns {boolean}
