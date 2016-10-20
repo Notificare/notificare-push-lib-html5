@@ -205,12 +205,7 @@
                                         break;
                                     case 'notificationreplied':
                                         var action = data[1].split('|');
-                                        this.reply(action[0], action[1], null, function(){}, function(){});
-                                        this._logNotificationEvents({
-                                            notification:{
-                                                _id: action[0]
-                                            }
-                                        });
+                                        this._handleActionClickOnChromeNotification(action[0], action[1]);
                                         break;
                                     case 'workeractivated':
                                         break;
@@ -802,6 +797,110 @@
             this._onURLLocationChanged();
         },
 
+        /**
+         * Handle action click of a Chrome Notification
+         * @param notification
+         * @private
+         */
+        _handleActionClickOnChromeNotification: function(notification, label){
+            $.ajax({
+                type: "GET",
+                url: this.options.apiUrl + '/notification/' + notification,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this)
+            }).done(function( msg ) {
+
+                this._logNotificationEvents(msg);
+
+                if (msg && msg.notification && msg.notification.actions && msg.notification.actions.length > 0) {
+
+                    msg.notification.actions.forEach(function(action){
+                        if (action.label == label) {
+                            this._executeAction(msg, action);
+                        }
+                    }.bind(this));
+
+                }
+
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+                setTimeout(function() {
+                    this._handleActionClickOnChromeNotification(notification, label);
+                }.bind(this), 2000);
+            }.bind(this));
+        },
+
+        /**
+         * Helper method to execute the action
+         * @private
+         */
+        _executeAction: function(msg, action){
+
+            if (action) {
+
+                var data = null;
+
+                if (action.type == "re.notifica.action.Browser" && action.target) {
+                    window.location.replace(action.target);
+                } else if (action.type == "re.notifica.action.Callback") {
+
+                    if (action.camera && action.keyboard) {
+
+                    } else if (action.camera && !action.keyboard) {
+
+                        var canvas = $("<canvas>"),
+                            context = canvas.get(0).getContext('2d'),
+                            video = $("<video>", {id: "video", "class": "video"}),
+                            button = $("<a>", {"class": "take-pic", "href":"#"});
+                            button.text("Take Picture");
+
+                        // Get access to the camera!
+                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
+                            navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+
+                                $("body").append(video);
+                                $("body").append(button);
+
+                                button.click(function(e){
+                                    e.preventDefault();
+                                    context.drawImage(video.get(0), 0, 0, 640, 480);
+                                    console.log(canvas.get(0).toDataURL("image/png"));
+                                }.bind(this));
+
+                                video.get(0).src = window.URL.createObjectURL(stream);
+                                video.get(0).play();
+                            }.bind(this));
+                        }
+
+                    } else if (!action.camera && action.keyboard) {
+                        var input = window.prompt("type a reply","");
+                        data = {message: input};
+                    } else {
+                        //It's a webhook
+                    }
+
+                } else if (action.type == "re.notifica.action.Mail") {
+                    window.location.href = action.target;
+                } else if (action.type == "re.notifica.action.Custom") {
+                    $(this.element).trigger("notificare:shouldPerformActionWithURL", action.target);
+                }
+
+                this.reply(msg.notification._id, action.label, data, function(){
+                    $(this.element).trigger("notificare:didExecuteAction", msg.notification);
+                }, function(){
+                    $(this.element).trigger("notificare:didFailToExecuteAction", msg.notification);
+                });
+
+            }
+
+        },
+        
+
+        /**
+         * Helper method to check if user is registered
+         * @returns {boolean}
+         */
         isDeviceRegistered: function(){
             if(this._getCookie('uuid')){
                 return true;
