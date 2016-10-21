@@ -838,6 +838,8 @@
 
             if (action) {
 
+                $(this.element).trigger("notificare:willExecuteAction", msg.notification);
+
                 var data = {};
 
                 if (action.type == "re.notifica.action.Browser" && action.target) {
@@ -849,91 +851,7 @@
 
                     } else if (action.camera && !action.keyboard && !action.target) {
 
-                        var canvas = $("<canvas>", {"class": "notificare-image"}),
-                            context = canvas.get(0).getContext('2d'),
-                            video = $("<video>", {"class": "notificare-camera"}),
-                            send = $("<a>", {"class": "notificare-send-image", "href":"#"}),
-                            cancel = $("<a>", {"class": "notificare-cancel-image", "href":"#"}),
-                            button = $("<a>", {"class": "notificare-capture-image", "href":"#"});
-                            cancel.text("Cancel");
-                            send.text("Send");
-                            button.text("Take Picture");
-
-                        // Get access to the camera!
-                        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-
-                            navigator.mediaDevices.getUserMedia({
-                                video: true
-                            }).then(function(stream) {
-
-                                video.get(0).src = window.URL.createObjectURL(stream);
-                                video.get(0).play();
-
-                                $("body").append(video);
-                                $("body").append(button);
-                                $("body").append(canvas);
-                                $("body").append(send);
-                                $("body").append(cancel);
-                                canvas.hide();
-                                send.hide();
-                                cancel.hide();
-
-                                button.click(function(e){
-                                    e.preventDefault();
-                                    context.drawImage(video.get(0), 0, 0, 320, 180);
-                                    video.hide();
-                                    button.hide();
-                                    canvas.show();
-                                    send.show();
-                                    cancel.show();
-
-                                    video.get(0).src = null;
-                                    video.get(0).pause();
-
-                                }.bind(this));
-
-
-                                send.click(function(e){
-                                    e.preventDefault();
-                                    var dataURL = canvas.get(0).toDataURL("image/png"),
-                                        blob = this._dataURItoBlob(dataURL);
-
-                                    this.uploadFile(blob, 'reply', function(fileURL){
-                                        data = {media: fileURL};
-                                        this._replyOnAction(msg, action, data);
-
-                                    }.bind(this), function(){
-
-                                    }.bind(this));
-
-                                    video.get(0).src = null;
-                                    video.get(0).pause();
-
-                                    canvas.remove();
-                                    send.remove();
-                                    cancel.remove();
-                                    video.remove();
-                                    button.remove();
-
-                                }.bind(this));
-
-                                cancel.click(function(e){
-                                    e.preventDefault();
-                                    canvas.hide();
-                                    send.hide();
-                                    cancel.hide();
-                                    video.show();
-                                    button.show();
-
-                                    video.get(0).src = window.URL.createObjectURL(stream);
-                                    video.get(0).play();
-
-                                }.bind(this));
-
-
-                            }.bind(this));
-
-                        }
+                        this._executeCamera(msg, action, data);
 
                     } else if (!action.camera && action.keyboard && !action.target) {
 
@@ -944,50 +862,7 @@
                     } else {
 
                         if (action.target) {
-                            var queries, temp, i, l;
-
-                            var queryString =  action.target.split("?");
-
-                            if (queryString.length > 0) {
-                                queries = queryString[1].split("&");
-                                // Convert the array of strings into an object
-                                for ( i = 0, l = queries.length; i < l; i++ ) {
-                                    temp = queries[i].split('=');
-                                    data[temp[0]] = temp[1];
-                                }
-                            }
-                            data.target = queryString[0];
-                            data.label = action.label;
-
-                            if (msg.notification._id) {
-                                data.notificationID = msg.notification._id;
-                            }
-
-                            if (this._getCookie('uuid')) {
-                                data.deviceID = this._getCookie('uuid');
-                            }
-
-                            if (this.options.userId) {
-                                data.userID = this.options.userId;
-                            }
-
-
-                            $.ajax({
-                                type: "POST",
-                                url: this.options.apiUrl + '/reply/webhook',
-                                beforeSend: function (xhr) {
-                                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                                }.bind(this),
-                                data: JSON.stringify(data),
-                                contentType: "application/json; charset=utf-8",
-                                dataType: "json"
-                            }).done(function( reply ) {
-
-                                this._replyOnAction(msg, action, data);
-
-                            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
-
-                            }.bind(this));
+                            this._executeWebHook(msg, action, data);
                         }
 
                     }
@@ -1020,6 +895,171 @@
 
         },
 
+        /**
+         * Helper method to execute a webhook
+         * @param msg
+         * @param action
+         * @param data
+         * @private
+         */
+        _executeWebHook: function(msg, action, data){
+
+            var queries, temp, i, l;
+
+            var queryString =  action.target.split("?");
+
+            if (queryString.length > 0) {
+                queries = queryString[1].split("&");
+                // Convert the array of strings into an object
+                for ( i = 0, l = queries.length; i < l; i++ ) {
+                    temp = queries[i].split('=');
+                    data[temp[0]] = temp[1];
+                }
+            }
+            data.target = queryString[0];
+            data.label = action.label;
+
+            if (msg.notification._id) {
+                data.notificationID = msg.notification._id;
+            }
+
+            if (this._getCookie('uuid')) {
+                data.deviceID = this._getCookie('uuid');
+            }
+
+            if (this.options.userId) {
+                data.userID = this.options.userId;
+            }
+
+
+            $.ajax({
+                type: "POST",
+                url: this.options.apiUrl + '/reply/webhook',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
+            }).done(function( reply ) {
+
+                this._replyOnAction(msg, action, data);
+
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+            }.bind(this));
+
+        },
+
+        /**
+         * Helper method for camera flow
+         * @param msg
+         * @param action
+         * @param data
+         * @private
+         */
+        _executeCamera: function(msg, action, data){
+
+            var canvas = $("<canvas>", {"class": "notificare-image"}),
+                context = canvas.get(0).getContext('2d'),
+                video = $("<video>", {"class": "notificare-camera"}),
+                send = $("<a>", {"class": "notificare-send-image", "href":"#"}),
+                cancel = $("<a>", {"class": "notificare-cancel-image", "href":"#"}),
+                close = $("<a>", {"class": "notificare-close-modal", "href":"#"}),
+                button = $("<a>", {"class": "notificare-capture-image", "href":"#"}),
+                modal = $("<div>", {"class": "notificare-modal"}),
+                bg = $("<div>", {"class": "notificare-modal-bg"});
+
+            cancel.text("Cancel");
+            send.text("Send");
+            button.text("Take Picture");
+            close.text("Close");
+
+            // Get access to the camera!
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
+                navigator.mediaDevices.getUserMedia({
+                    video: true
+                }).then(function(stream) {
+
+                    video.get(0).src = window.URL.createObjectURL(stream);
+                    video.get(0).play();
+
+                    modal.append(video);
+                    modal.append(button);
+                    modal.append(canvas);
+                    modal.append(send);
+                    modal.append(cancel);
+                    modal.append(close);
+                    bg.append(modal);
+                    $("body").append(bg);
+                    canvas.hide();
+                    send.hide();
+                    cancel.hide();
+
+                    button.click(function(e){
+                        e.preventDefault();
+                        context.drawImage(video.get(0), 0, 0, 320, 180);
+                        video.hide();
+                        button.hide();
+                        close.hide();
+                        canvas.show();
+                        send.show();
+                        cancel.show();
+
+                        video.get(0).src = "";
+                        video.get(0).pause();
+
+                    }.bind(this));
+
+
+                    send.click(function(e){
+                        e.preventDefault();
+                        var dataURL = canvas.get(0).toDataURL("image/png"),
+                            blob = this._dataURItoBlob(dataURL);
+
+                        this.uploadFile(blob, 'reply', function(fileURL){
+                            data = {media: fileURL};
+                            this._replyOnAction(msg, action, data);
+
+                        }.bind(this), function(){
+
+                        }.bind(this));
+
+                        video.get(0).src = "";
+                        video.get(0).pause();
+                        stream.getTracks()[0].stop();
+                        bg.remove();
+
+                    }.bind(this));
+
+                    cancel.click(function(e){
+                        e.preventDefault();
+                        canvas.hide();
+                        send.hide();
+                        cancel.hide();
+                        video.show();
+                        button.show();
+                        close.show();
+
+                        video.get(0).src = window.URL.createObjectURL(stream);
+                        video.get(0).play();
+
+                    }.bind(this));
+
+                    close.click(function(e){
+                        e.preventDefault();
+                        video.get(0).src = "";
+                        video.get(0).pause();
+                        stream.getTracks()[0].stop();
+                        bg.remove();
+                    }.bind(this))
+
+                }.bind(this));
+
+            }
+
+        },
         /**
          * Data URI from Blob
          * @param dataURI

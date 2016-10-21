@@ -20,10 +20,45 @@
 				right: -14px;
 				top: 20px;
 			}
+			.notificare-modal-bg{
+				position: fixed;
+				top: 0px;
+				left: 0px;
+				background: rgba(0, 0, 0, .5);
+				right: 0px;
+				bottom: 0px;
+			}
+			.notificare-modal{
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%,-50%);
+				width: 680px;
+				height: 570px;
+				background: white;
+				padding: 20px;
+				text-align: center;
+			}
 			.notificare-image, .notificare-camera{
 				width: 640px;
-				height: 320px;
+				height: 480px;
 			}
+
+			.notificare-send-image, .notificare-cancel-image, .notificare-capture-image, .notificare-close-modal{
+				display: inline-block;
+				padding: 8px;
+				color: white;
+				margin: 12px 5px 0 0;
+			}
+
+			.notificare-send-image, .notificare-capture-image{
+				background: green;
+			}
+
+			.notificare-close-modal, .notificare-cancel-image{
+				background: red;
+			}
+
 		</style>
 	</head>
 	<body>
