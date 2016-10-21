@@ -116,40 +116,55 @@ self.addEventListener('notificationclick', function (event) {
 
     event.notification.close();
 
-    if (event.action) {
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
-            });
-        });
-    } else {
-        event.waitUntil(
+    event.waitUntil(
 
-            self.clients.matchAll({
-                    type: "window"
-                })
-                .then(function(clientList) {
+        self.clients.matchAll({
+                type: "window"
+            })
+            .then(function(clientList) {
 
-                    clientList.forEach(function(client) {
+                clientList.forEach(function(client) {
 
-                        if(event.notification.tag != 'user_visible_auto_notification'){
-                            if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
-                                client.postMessage('notificationclick:' + event.notification.tag);
-                                return client.focus();
-                            }
+                    if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
+
+                        if (event.action) {
+
+                            self.clients.matchAll().then(function(clients) {
+                                clients.forEach(function(client) {
+                                    client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
+                                });
+                            });
+
+                        } else {
+
+                            client.postMessage('notificationclick:' + event.notification.tag);
+
                         }
-                    });
+                        return client.focus();
+                    }
+                });
 
-                    if (clientList.length == 0) {
-                        var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
-                        return clients.openWindow(url);
+                if (clientList.length == 0) {
+                    var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+
+                    if (event.action) {
+
+                        self.clients.matchAll().then(function(clients) {
+                            clients.forEach(function(client) {
+                                client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
+                            });
+                        });
+
                     }
 
-                })
+                    return clients.openWindow(url);
+                }
+
+            })
 
 
-        );
-    }
+    );
+
 });
 
 //Set the callback for the activate step

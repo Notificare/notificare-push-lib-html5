@@ -71,45 +71,14 @@
                     this.options.apiUrl = "https://cloud-test.notifica.re/api";
                     this.options.awsStorage = "https://push-test.notifica.re/upload";
                 } else {
-                    //this.options.apiUrl = "https://cloud.notifica.re/api";
-                    this.options.apiUrl = "http://localhost:4002/api";
+                    this.options.apiUrl = "https://cloud.notifica.re/api";
                     this.options.awsStorage = "https://push.notifica.re/upload";
                 }
                 this._getApplicationInfo();
 
-                ///@TESTTTTTT - Remove later
-                $( "form" ).submit(function( event ) {
-
-
-
-                    event.preventDefault();
-
-                    var formData = new FormData();
-                    formData.append('file', $("#fileInput")[0].files[0]);
-
-                    $.ajax({
-                        type: "POST",
-                        url: this.options.apiUrl + '/upload/reply',
-                        beforeSend: function (xhr) {
-                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                        }.bind(this),
-                        data: formData,
-                        contentType: false,
-                        processData: false
-                    }).done(function( msg ) {
-
-
-                    }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
-
-                    }.bind(this));
-                }.bind(this));
-
             }.bind(this), function(errors){
                 console.warn('Notificare: Please make sure you have a config.json file in the root of your webapp');
             }.bind(this));
-
-
-
 
         },
 
@@ -869,73 +838,114 @@
 
             if (action) {
 
-                var data = null;
+                var data = {};
 
                 if (action.type == "re.notifica.action.Browser" && action.target) {
                     window.location.replace(action.target);
+                    this._replyOnAction(msg, action, data);
                 } else if (action.type == "re.notifica.action.Callback") {
 
                     if (action.camera && action.keyboard && !action.target) {
 
                     } else if (action.camera && !action.keyboard && !action.target) {
 
-                        var canvas = $("<canvas>"),
+                        var canvas = $("<canvas>", {"class": "notificare-image"}),
                             context = canvas.get(0).getContext('2d'),
-                            video = $("<video>", {id: "video", "class": "video"}),
-                            button = $("<a>", {"class": "take-pic", "href":"#"});
+                            video = $("<video>", {"class": "notificare-camera"}),
+                            send = $("<a>", {"class": "notificare-send-image", "href":"#"}),
+                            cancel = $("<a>", {"class": "notificare-cancel-image", "href":"#"}),
+                            button = $("<a>", {"class": "notificare-capture-image", "href":"#"});
+                            cancel.text("Cancel");
+                            send.text("Send");
                             button.text("Take Picture");
 
                         // Get access to the camera!
                         if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
 
-                            navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
-
-                                $("body").append(video);
-                                $("body").append(button);
-
-                                button.click(function(e){
-                                    e.preventDefault();
-                                    context.drawImage(video.get(0), 0, 0, 640, 480);
-
-                                    var dataURL = canvas.get(0).toDataURL("image/png"),
-                                        blob = this._dataURItoBlob(dataURL);
-                                    var formData = new FormData();
-                                    formData.append('file', blob);
-
-                                    $.ajax({
-                                        type: "POST",
-                                        url: this.options.apiUrl + '/upload/reply',
-                                        beforeSend: function (xhr) {
-                                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                                        }.bind(this),
-                                        data: formData,
-                                        contentType: false,
-                                        processData: false
-                                    }).done(function( msg ) {
-
-
-                                    }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
-
-                                    }.bind(this));
-
-                                    //console.log(canvas.get(0).toDataURL("image/png"));
-
-                                }.bind(this));
+                            navigator.mediaDevices.getUserMedia({
+                                video: true
+                            }).then(function(stream) {
 
                                 video.get(0).src = window.URL.createObjectURL(stream);
                                 video.get(0).play();
+
+                                $("body").append(video);
+                                $("body").append(button);
+                                $("body").append(canvas);
+                                $("body").append(send);
+                                $("body").append(cancel);
+                                canvas.hide();
+                                send.hide();
+                                cancel.hide();
+
+                                button.click(function(e){
+                                    e.preventDefault();
+                                    context.drawImage(video.get(0), 0, 0, 320, 180);
+                                    video.hide();
+                                    button.hide();
+                                    canvas.show();
+                                    send.show();
+                                    cancel.show();
+
+                                    video.get(0).src = null;
+                                    video.get(0).pause();
+
+                                }.bind(this));
+
+
+                                send.click(function(e){
+                                    e.preventDefault();
+                                    var dataURL = canvas.get(0).toDataURL("image/png"),
+                                        blob = this._dataURItoBlob(dataURL);
+
+                                    this.uploadFile(blob, 'reply', function(fileURL){
+                                        data = {media: fileURL};
+                                        this._replyOnAction(msg, action, data);
+
+                                    }.bind(this), function(){
+
+                                    }.bind(this));
+
+                                    video.get(0).src = null;
+                                    video.get(0).pause();
+
+                                    canvas.remove();
+                                    send.remove();
+                                    cancel.remove();
+                                    video.remove();
+                                    button.remove();
+
+                                }.bind(this));
+
+                                cancel.click(function(e){
+                                    e.preventDefault();
+                                    canvas.hide();
+                                    send.hide();
+                                    cancel.hide();
+                                    video.show();
+                                    button.show();
+
+                                    video.get(0).src = window.URL.createObjectURL(stream);
+                                    video.get(0).play();
+
+                                }.bind(this));
+
+
                             }.bind(this));
 
                         }
 
                     } else if (!action.camera && action.keyboard && !action.target) {
+
                         var input = window.prompt("type a reply","");
                         data = {message: input};
+                        this._replyOnAction(msg, action, data);
+
                     } else {
 
                         if (action.target) {
                             var queries, temp, i, l;
-                            data = {};
+
                             var queryString =  action.target.split("?");
 
                             if (queryString.length > 0) {
@@ -971,8 +981,9 @@
                                 data: JSON.stringify(data),
                                 contentType: "application/json; charset=utf-8",
                                 dataType: "json"
-                            }).done(function( msg ) {
+                            }).done(function( reply ) {
 
+                                this._replyOnAction(msg, action, data);
 
                             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
 
@@ -983,17 +994,29 @@
 
                 } else if (action.type == "re.notifica.action.Mail") {
                     window.location.href = action.target;
+                    this._replyOnAction(msg, action, data);
                 } else if (action.type == "re.notifica.action.Custom") {
                     $(this.element).trigger("notificare:shouldPerformActionWithURL", action.target);
+                    this._replyOnAction(msg, action, data);
                 }
 
-                this.reply(msg.notification._id, action.label, data, function(){
-                    $(this.element).trigger("notificare:didExecuteAction", msg.notification);
-                }, function(){
-                    $(this.element).trigger("notificare:didFailToExecuteAction", msg.notification);
-                });
-
             }
+
+        },
+
+        /**
+         * Helper method on reply on action
+         * @param msg
+         * @param action
+         * @param data
+         * @private
+         */
+        _replyOnAction: function(msg, action, data){
+            this.reply(msg.notification._id, action.label, data, function(){
+                $(this.element).trigger("notificare:didExecuteAction", msg.notification);
+            }, function(){
+                $(this.element).trigger("notificare:didFailToExecuteAction", msg.notification);
+            });
 
         },
 
@@ -1022,6 +1045,38 @@
             }
 
             return new Blob([new Uint8Array(content)], {type: mimestring});
+        },
+
+        /**
+         * Upload a file of type
+         * @param type
+         * @param success
+         * @param errors
+         */
+        uploadFile: function(file, type, success, errors) {
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax({
+                type: "POST",
+                url: this.options.apiUrl + '/upload/' + type,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
+                data: formData,
+                contentType: false,
+                processData: false
+            }).done(function( reply ) {
+
+                success('https://s3-eu-west-1.amazonaws.com/notificare-storage' + reply.filename);
+
+            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+
+                errors('Notificare: Failed to upload the image');
+
+            }.bind(this));
+
         },
         /**
          * Helper method to check if user is registered
