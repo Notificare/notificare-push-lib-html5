@@ -44,18 +44,26 @@
 				height: 480px;
 			}
 
-			.notificare-send-image, .notificare-cancel-image, .notificare-capture-image, .notificare-close-modal{
+			.notificare-text-area{
+				width: 640px;
+				height: 480px;
+				border: 1px solid grey;
+				border-radius: 5px;
+				outline: 0;
+			}
+
+			.notificare-send, .notificare-cancel, .notificare-capture-image, .notificare-close-modal{
 				display: inline-block;
 				padding: 8px;
 				color: white;
 				margin: 12px 5px 0 0;
 			}
 
-			.notificare-send-image, .notificare-capture-image{
+			.notificare-send, .notificare-capture-image{
 				background: green;
 			}
 
-			.notificare-close-modal, .notificare-cancel-image{
+			.notificare-close-modal, .notificare-cancel{
 				background: red;
 			}
 
@@ -104,8 +112,6 @@
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 		<script>
 
-
-
 			$(document).ready(function(){
 
 				var instance = $('#myapp').notificare();
@@ -139,8 +145,8 @@
 					});
 
 					instance.notificare("updateUserData", {
-						firstName: "PIU",
-						lastName: "CAPIUE"
+						firstName: "MASSIMO",
+						lastName: "GONDOLIERI"
 					}, function(msg){
 						console.log(msg);
 					}, function(error){
@@ -148,12 +154,13 @@
 					});
 					*/
 
-
+					/*
 					instance.notificare("fetchDoNotDisturb", function(dnd){
 						console.log(dnd);
 					}, function(error){
 						console.log(error);
 					});
+					*/
 
 					/*
 					instance.notificare("updateDoNotDisturb", "01:00" , "07:00" , function(msg){
@@ -243,7 +250,37 @@
 					} else {
 						$("#badge").hide();
 					}
+
+					instance.notificare("fetchInbox", function(inboxItems){
+
+						refreshInbox(inboxItems);
+
+					}, function(error){
+						console.log(error);
+					});
+
 				});
+
+				$("#myapp").bind("notificare:willExecuteAction", function(event, data) {
+					instance.notificare("log", 'willExecuteAction: ' + data);
+				});
+
+				$("#myapp").bind("notificare:shouldPerformActionWithURL", function(event, data) {
+					instance.notificare("log", 'shouldPerformActionWithURL: ' + data);
+				});
+
+				$("#myapp").bind("notificare:didFailToExecuteAction", function(event, data) {
+					instance.notificare("log", 'didFailToExecuteAction: ' + data);
+				});
+
+				$("#myapp").bind("notificare:didExecuteAction", function(event, data) {
+					instance.notificare("log", 'didExecuteAction: ' + data);
+				});
+
+				$("#myapp").bind("notificare:didNotExecuteAction", function(event, data) {
+					instance.notificare("log", 'didNotExecuteAction: ' + data);
+				});
+
 
 				/**
 				 * Example methods

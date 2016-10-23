@@ -52,7 +52,7 @@ self.addEventListener('push', function (event) {
                                 var title = application.name;
                                 var message = data.inboxItems[0].message;
                                 var icon = config.awsStorage + application.websitePushConfig.icon;
-                                var notificationTag = data.inboxItems[0].notification;
+                                var notificationTag = data.inboxItems[0]._id;
 
                                 self.clients.matchAll().then(function(clients) {
                                     clients.forEach(function(client) {

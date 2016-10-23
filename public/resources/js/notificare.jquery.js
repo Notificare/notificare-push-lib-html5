@@ -570,6 +570,7 @@
 
                     this._onURLLocationChanged();
 
+
                 }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
 
                     if( jqXHR.status == 502 ||
@@ -803,6 +804,7 @@
          * @private
          */
         _handleActionClickOnChromeNotification: function(notification, label){
+
             $.ajax({
                 type: "GET",
                 url: this.options.apiUrl + '/notification/' + notification,
@@ -812,6 +814,7 @@
             }).done(function( msg ) {
 
                 this._logNotificationEvents(msg);
+                this._refreshBadge();
 
                 if (msg && msg.notification && msg.notification.actions && msg.notification.actions.length > 0) {
 
@@ -849,30 +852,34 @@
 
                     if (action.camera && action.keyboard && !action.target) {
 
+                        this._executeCameraAndKeyboard(msg, action, data);
+
                     } else if (action.camera && !action.keyboard && !action.target) {
 
                         this._executeCamera(msg, action, data);
 
                     } else if (!action.camera && action.keyboard && !action.target) {
 
-                        var input = window.prompt("type a reply","");
-                        data = {message: input};
-                        this._replyOnAction(msg, action, data);
+                        this._executeKeyboard(msg, action, data);
 
                     } else {
 
                         if (action.target) {
                             this._executeWebHook(msg, action, data);
+                        } else {
+                            this._replyOnAction(msg, action, null);
                         }
 
                     }
 
                 } else if (action.type == "re.notifica.action.Mail") {
-                    window.location.href = action.target;
+                    window.location.href = 'mailto:' + action.target;
                     this._replyOnAction(msg, action, data);
                 } else if (action.type == "re.notifica.action.Custom") {
                     $(this.element).trigger("notificare:shouldPerformActionWithURL", action.target);
                     this._replyOnAction(msg, action, data);
+                } else {
+                    $(this.element).trigger("notificare:didFailToExecuteAction", msg.notification);
                 }
 
             }
@@ -908,7 +915,7 @@
 
             var queryString =  action.target.split("?");
 
-            if (queryString.length > 0) {
+            if (queryString.length > 1) {
                 queries = queryString[1].split("&");
                 // Convert the array of strings into an object
                 for ( i = 0, l = queries.length; i < l; i++ ) {
@@ -946,8 +953,53 @@
                 this._replyOnAction(msg, action, data);
 
             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
+                setTimeout(function() {
+                    this._executeWebHook(msg, action, data);
+                }.bind(this), 2000);
+            }.bind(this));
+
+        },
+
+        /**
+         * Helper method for keyboard flow
+         * @param msg
+         * @param action
+         * @param data
+         * @private
+         */
+        _executeKeyboard: function(msg, action, data){
+
+            var textarea = $("<textarea>", {"class": "notificare-text-area"}),
+                send = $("<a>", {"class": "notificare-send", "href":"#"}),
+                close = $("<a>", {"class": "notificare-close-modal", "href":"#"}),
+                modal = $("<div>", {"class": "notificare-modal"}),
+                bg = $("<div>", {"class": "notificare-modal-bg"});
+
+            textarea.attr('placeholder', 'Type a reply');
+            send.text("Send");
+            close.text("Close");
+
+
+            modal.append(textarea);
+            modal.append(send);
+            modal.append(close);
+            bg.append(modal);
+            $("body").append(bg);
+
+            send.click(function(e){
+                e.preventDefault();
+                data = {message: textarea.val()};
+                this._replyOnAction(msg, action, data);
+                bg.remove();
 
             }.bind(this));
+
+            close.click(function(e){
+                e.preventDefault();
+                $(this.element).trigger("notificare:didNotExecuteAction", msg.notification);
+                bg.remove();
+            }.bind(this));
+
 
         },
 
@@ -963,8 +1015,8 @@
             var canvas = $("<canvas>", {"class": "notificare-image"}),
                 context = canvas.get(0).getContext('2d'),
                 video = $("<video>", {"class": "notificare-camera"}),
-                send = $("<a>", {"class": "notificare-send-image", "href":"#"}),
-                cancel = $("<a>", {"class": "notificare-cancel-image", "href":"#"}),
+                send = $("<a>", {"class": "notificare-send", "href":"#"}),
+                cancel = $("<a>", {"class": "notificare-cancel", "href":"#"}),
                 close = $("<a>", {"class": "notificare-close-modal", "href":"#"}),
                 button = $("<a>", {"class": "notificare-capture-image", "href":"#"}),
                 modal = $("<div>", {"class": "notificare-modal"}),
@@ -1052,8 +1104,140 @@
                         video.get(0).src = "";
                         video.get(0).pause();
                         stream.getTracks()[0].stop();
+                        $(this.element).trigger("notificare:didNotExecuteAction", msg.notification);
                         bg.remove();
-                    }.bind(this))
+                    }.bind(this));
+
+                }.bind(this));
+
+            }
+
+        },
+
+        /**
+         * Helper method for camera & keyboard flow
+         * @param msg
+         * @param action
+         * @param data
+         * @private
+         */
+        _executeCameraAndKeyboard: function(msg, action, data){
+
+            var canvas = $("<canvas>", {"class": "notificare-image"}),
+                textarea = $("<textarea>", {"class": "notificare-text-area"}),
+                context = canvas.get(0).getContext('2d'),
+                video = $("<video>", {"class": "notificare-camera"}),
+                next = $("<a>", {"class": "notificare-send", "href":"#"}),
+                send = $("<a>", {"class": "notificare-send", "href":"#"}),
+                cancel = $("<a>", {"class": "notificare-cancel", "href":"#"}),
+                close = $("<a>", {"class": "notificare-close-modal", "href":"#"}),
+                button = $("<a>", {"class": "notificare-capture-image", "href":"#"}),
+                modal = $("<div>", {"class": "notificare-modal"}),
+                bg = $("<div>", {"class": "notificare-modal-bg"});
+
+            textarea.attr('placeholder', 'Type a reply');
+            cancel.text("Cancel");
+            next.text("Next");
+            send.text("Send");
+            button.text("Take Picture");
+            close.text("Close");
+
+            // Get access to the camera!
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
+                navigator.mediaDevices.getUserMedia({
+                    video: true
+                }).then(function(stream) {
+
+                    video.get(0).src = window.URL.createObjectURL(stream);
+                    video.get(0).play();
+
+                    modal.append(textarea);
+                    modal.append(video);
+                    modal.append(button);
+                    modal.append(canvas);
+                    modal.append(send);
+                    modal.append(next);
+                    modal.append(cancel);
+                    modal.append(close);
+                    bg.append(modal);
+                    $("body").append(bg);
+                    canvas.hide();
+                    textarea.hide();
+                    send.hide();
+                    cancel.hide();
+                    next.hide();
+
+                    button.click(function(e){
+                        e.preventDefault();
+                        context.drawImage(video.get(0), 0, 0, 320, 180);
+                        video.hide();
+                        button.hide();
+                        close.hide();
+                        canvas.show();
+                        next.show();
+                        cancel.show();
+
+                        video.get(0).src = "";
+                        video.get(0).pause();
+
+                    }.bind(this));
+
+
+                    next.click(function(e){
+                        e.preventDefault();
+                        var dataURL = canvas.get(0).toDataURL("image/png"),
+                            blob = this._dataURItoBlob(dataURL);
+
+                        this.uploadFile(blob, 'reply', function(fileURL){
+                            data = {media: fileURL};
+                            textarea.show();
+                            send.show();
+                            canvas.hide();
+                            next.hide();
+
+                        }.bind(this), function(){
+
+                        }.bind(this));
+
+                        video.get(0).src = "";
+                        video.get(0).pause();
+                        stream.getTracks()[0].stop();
+
+                    }.bind(this));
+
+
+                    send.click(function(e){
+                        e.preventDefault();
+                        data['message'] = textarea.val();
+                        this._replyOnAction(msg, action, data);
+                        bg.remove();
+                    }.bind(this));
+
+                    cancel.click(function(e){
+                        e.preventDefault();
+                        canvas.hide();
+                        send.hide();
+                        cancel.hide();
+                        next.hide();
+                        textarea.hide();
+                        video.show();
+                        button.show();
+                        close.show();
+
+                        video.get(0).src = window.URL.createObjectURL(stream);
+                        video.get(0).play();
+
+                    }.bind(this));
+
+                    close.click(function(e){
+                        e.preventDefault();
+                        video.get(0).src = "";
+                        video.get(0).pause();
+                        stream.getTracks()[0].stop();
+                        $(this.element).trigger("notificare:didNotExecuteAction", msg.notification);
+                        bg.remove();
+                    }.bind(this));
 
                 }.bind(this));
 
