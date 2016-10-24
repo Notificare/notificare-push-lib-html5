@@ -1,3 +1,9 @@
+1.9.2 - 25-10-2016 Joel Oliveira
+- Fixes for Push Worker for notification/action clicked
+- Fixes for configuration keys when worker is removed
+- Fixes for UI to be removed before appended to the body
+- Remove check for APNS certificate in Chrome notifications
+
 1.9.1 - 24-10-2016 Joel Oliveira
 - Added actions in Chrome Notifications
 

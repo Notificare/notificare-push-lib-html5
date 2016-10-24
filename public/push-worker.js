@@ -11,6 +11,12 @@ var theApplication = null;
 
 self.addEventListener('push', function (event) {
 
+    self.clients.matchAll().then(function(clients) {
+        clients.forEach(function(client) {
+            client.postMessage(JSON.stringify({cmd: 'push'}));
+        });
+    })
+
     event.waitUntil(
 
         self.registration.pushManager.getSubscription().then(function(deviceSubscription){
@@ -42,7 +48,7 @@ self.addEventListener('push', function (event) {
 
                         self.clients.matchAll().then(function(clients) {
                             clients.forEach(function(client) {
-                                client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
+                                client.postMessage(JSON.stringify({cmd: 'notificationreceived', message: data.inboxItems[0].notification}));
                             });
                         });
 
@@ -98,50 +104,61 @@ self.addEventListener('notificationclick', function (event) {
 
     event.waitUntil(
 
-        self.clients.matchAll({
-                type: "window"
-            })
-            .then(function(clientList) {
+        clients.matchAll({
+            type: "window"
+        })
+        .then(function(clientList) {
+
+            if (clientList.length == 0) {
+
+                var url = theConfig.appHost;
+
+                if (event.action) {
+
+                    setTimeout(function(){
+
+                        clients.matchAll().then(function(clients) {
+                            clients.forEach(function(client) {
+                                client.postMessage(JSON.stringify({cmd: 'notificationreplied', message: event.notification.tag, action: event.action}));
+                            });
+                        });
+
+                    }, 2000);
+
+                } else {
+                    url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+
+                }
+
+                return clients.openWindow(url);
+
+            } else {
 
                 clientList.forEach(function(client) {
 
-                    if (client  && client.url == theConfig.appHost + '/' && 'focus' in client){
+                    if (client  && client.url.indexOf(theConfig.appHost) > -1 && 'focus' in client){
 
                         if (event.action) {
 
                             self.clients.matchAll().then(function(clients) {
                                 clients.forEach(function(client) {
-                                    client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
+                                    client.postMessage(JSON.stringify({cmd: 'notificationreplied', message: event.notification.tag, action: event.action}));
                                 });
                             });
 
                         } else {
 
-                            client.postMessage('notificationclick:' + event.notification.tag);
+                            client.postMessage(JSON.stringify({cmd: 'notificationclick', message: event.notification.tag}));
 
                         }
+
                         return client.focus();
                     }
                 });
 
-                if (clientList.length == 0) {
-                    var url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+            }
 
-                    if (event.action) {
-
-                        self.clients.matchAll().then(function(clients) {
-                            clients.forEach(function(client) {
-                                client.postMessage('notificationreplied:' + event.notification.tag + '|' + event.action);
-                            });
-                        });
-
-                    }
-
-                    return clients.openWindow(url);
-                }
-
-            })
-
+        })
 
     );
 
@@ -152,7 +169,7 @@ self.addEventListener('activate', function (event) {
     clients.claim();
     clients.matchAll().then(function(clients) {
         clients.forEach(function(client) {
-            client.postMessage('workeractivated:');
+            client.postMessage(JSON.stringify({cmd: 'workeractivated'}));
         });
     });
 });
@@ -163,7 +180,6 @@ self.addEventListener('install', function(event) {
     event.waitUntil(self.skipWaiting());
 });
 
-
 self.addEventListener("message", function(e) {
 
     var data = JSON.parse(e.data);
@@ -173,11 +189,11 @@ self.addEventListener("message", function(e) {
             theConfig = data.options;
             break;
         case 'update':
-            //
+            theConfig = data.options;
             break;
         default:
             console.log(e);
-        break;
+            break;
     }
 });
 
