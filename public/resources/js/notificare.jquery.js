@@ -65,8 +65,8 @@
                 }
             }
 
-            this._initWithConfig(function(options){
-                this.options = $.extend( {}, defaults, options );
+            if (typeof NOTIFICARE_PLUGIN_OPTIONS  !== 'undefined') {
+                this.options = $.extend( {}, defaults, NOTIFICARE_PLUGIN_OPTIONS );
                 if(this.options.useTestEnv){
                     this.options.apiUrl = "https://cloud-test.notifica.re/api";
                     this.options.awsStorage = "https://push-test.notifica.re/upload";
@@ -75,10 +75,22 @@
                     this.options.awsStorage = "https://push.notifica.re/upload";
                 }
                 this._getApplicationInfo();
+            } else {
+                this._initWithConfig(function(options){
+                    this.options = $.extend( {}, defaults, options );
+                    if(this.options.useTestEnv){
+                        this.options.apiUrl = "https://cloud-test.notifica.re/api";
+                        this.options.awsStorage = "https://push-test.notifica.re/upload";
+                    } else {
+                        this.options.apiUrl = "https://cloud.notifica.re/api";
+                        this.options.awsStorage = "https://push.notifica.re/upload";
+                    }
+                    this._getApplicationInfo();
 
-            }.bind(this), function(errors){
-                console.warn('Notificare: Please make sure you have a config.json file in the root of your webapp');
-            }.bind(this));
+                }.bind(this), function(errors){
+                    console.warn('Notificare: Please make sure you have a config.json file in the root of your webapp');
+                }.bind(this));
+            }
 
         },
 
@@ -208,6 +220,10 @@
                                         this._handleActionClickOnChromeNotification(action[0], action[1]);
                                         break;
                                     case 'workeractivated':
+                                        this._sendMessage({
+                                            action: "init",
+                                            options: this.options
+                                        });
                                         break;
                                     default:
                                         //console.log(msg);
@@ -612,7 +628,7 @@
                 // The service worker can then use the transferred port to reply via postMessage(), which
                 // will in turn trigger the onmessage handler on messageChannel.port1.
                 // See https://html.spec.whatwg.org/multipage/workers.html#dom-worker-postmessage
-                navigator.serviceWorker.controller.postMessage(message, [messageChannel.port2]);
+                navigator.serviceWorker.controller.postMessage(JSON.stringify(message), [messageChannel.port2]);
             });
         },
         /**

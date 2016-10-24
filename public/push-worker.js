@@ -15,90 +15,70 @@ self.addEventListener('push', function (event) {
 
         self.registration.pushManager.getSubscription().then(function(deviceSubscription){
 
-            return fetch('/config.json').then(function(response) {
+            return fetch(theConfig.apiUrl + '/application/info', {
+                headers: new Headers({
+                    "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
+                })
+            }).then(function(response) {
                 return response.json();
-            }).then(function(config) {
+            }).then(function(info) {
 
-                if(config.useTestEnv){
-                    config.apiUrl = "https://cloud-test.notifica.re/api";
-                    config.awsStorage = "https://push-test.notifica.re/upload";
-                } else {
-                    config.apiUrl = "https://cloud.notifica.re/api";
-                    config.awsStorage = "https://push.notifica.re/upload";
-                }
+                var application = info.application;
+                theApplication = application;
 
-                theConfig = config;
-
-                return fetch(config.apiUrl + '/application/info', {
+                return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
                     headers: new Headers({
-                        "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
+                        "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
                     })
                 }).then(function(response) {
                     return response.json();
-                }).then(function(info) {
+                }).then(function(data) {
 
-                    var application = info.application;
-                    theApplication = application;
+                    if(data && data.inboxItems && data.inboxItems.length > 0){
+                        var title = theApplication.name;
+                        var message = data.inboxItems[0].message;
+                        var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
+                        var notificationTag = data.inboxItems[0]._id;
 
-                        return fetch(config.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
+                        self.clients.matchAll().then(function(clients) {
+                            clients.forEach(function(client) {
+                                client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
+                            });
+                        });
+
+                        return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
                             headers: new Headers({
-                                "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
+                                "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
                             })
                         }).then(function(response) {
                             return response.json();
                         }).then(function(data) {
 
-                            if(data && data.inboxItems && data.inboxItems.length > 0){
-                                var title = application.name;
-                                var message = data.inboxItems[0].message;
-                                var icon = config.awsStorage + application.websitePushConfig.icon;
-                                var notificationTag = data.inboxItems[0]._id;
-
-                                self.clients.matchAll().then(function(clients) {
-                                    clients.forEach(function(client) {
-                                        client.postMessage('notificationreceived:' + data.inboxItems[0].notification);
-                                    });
+                            var actions = [];
+                            data.notification.actions.forEach(function(a){
+                                actions.push({
+                                    title: a.label,
+                                    action: a.label
                                 });
+                            });
+                            return self.registration.showNotification(title, {
+                                body: message,
+                                icon: icon,
+                                tag: notificationTag,
+                                actions: actions
+                            });
+                        });
 
-                                return fetch(config.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
-                                    headers: new Headers({
-                                        "Authorization": "Basic " + btoa(config.appKey + ":" + config.appSecret)
-                                    })
-                                }).then(function(response) {
-                                    return response.json();
-                                }).then(function(data) {
-
-                                    var actions = [];
-                                    data.notification.actions.forEach(function(a){
-                                        actions.push({
-                                            title: a.label,
-                                            action: a.label
-                                        });
-                                    });
-                                    return self.registration.showNotification(title, {
-                                        body: message,
-                                        icon: icon,
-                                        tag: notificationTag,
-                                        actions: actions
-                                    });
-                                });
-
-                            } else {
-                                return null;
-                            }
-                        }).catch(function(err) {
-                            console.log('Notificare: Failed to fetch message', err);
-                            return null;
-                        })
-
-
-                }).catch(function(e){
-                    console.log('Notificare: Failed to get application info', e);
+                    } else {
+                        return null;
+                    }
+                }).catch(function(err) {
+                    console.log('Notificare: Failed to fetch message', err);
                     return null;
                 })
 
-            }).catch(function(){
-                console.log('Notificare: Failed to get config.js', e);
+            }).catch(function(e){
+                console.log('Notificare: Failed to get application info', e);
                 return null;
             })
 
@@ -186,9 +166,11 @@ self.addEventListener('install', function(event) {
 
 self.addEventListener("message", function(e) {
 
-    switch(e.data.action) {
-        case 'init':
+    var data = JSON.parse(e.data);
 
+    switch(data.action) {
+        case 'init':
+            theConfig = data.options;
             break;
         case 'update':
             //
