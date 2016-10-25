@@ -209,26 +209,19 @@
                                     case 'notificationclick':
                                         this._handleClickOnChromeNotification(data.message);
                                         break;
-                                    case 'notificationreceived':
+                                    case 'notificationreceive':
                                         this._getChromeNotification(data.message);
                                         break;
-                                    case 'notificationreplied':
+                                    case 'notificationreply':
                                         this._handleActionClickOnChromeNotification(data.message, data.action);
                                         break;
-                                    case 'workeractivated':
+                                    case 'activate':
                                         this._sendMessage({
                                             action: "init",
                                             options: this.options
                                         });
                                         break;
-                                    case 'push':
-                                        this._sendMessage({
-                                            action: "update",
-                                            options: this.options
-                                        });
-                                        break;
                                     default:
-                                        //console.log(msg);
                                         break;
                                 }
                             }

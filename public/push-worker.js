@@ -1,5 +1,5 @@
 /*
- *  Push Worker for Google Chrome
+ *  Push Worker for WebPush
  *  http://notifica.re
  *
  *  @author Joel Oliveira joel@notifica.re
@@ -11,81 +11,100 @@ var theApplication = null;
 
 self.addEventListener('push', function (event) {
 
-    self.clients.matchAll().then(function(clients) {
-        clients.forEach(function(client) {
-            client.postMessage(JSON.stringify({cmd: 'push'}));
-        });
-    })
-
     event.waitUntil(
 
         self.registration.pushManager.getSubscription().then(function(deviceSubscription){
 
-            return fetch(theConfig.apiUrl + '/application/info', {
-                headers: new Headers({
-                    "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                })
-            }).then(function(response) {
-                return response.json();
-            }).then(function(info) {
+            return new Promise(function(resolve, reject){
+                var openRequest = indexedDB.open("config_db", 1);
 
-                var application = info.application;
-                theApplication = application;
+                openRequest.onsuccess = function(e) {
+                    var db = e.target.result;
+                    var transaction = db.transaction(["config"], "readonly");
+                    var objectStore = transaction.objectStore("config");
 
-                return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
-                    headers: new Headers({
-                        "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                    })
-                }).then(function(response) {
-                    return response.json();
-                }).then(function(data) {
+                    var request = objectStore.get(1);
 
-                    if(data && data.inboxItems && data.inboxItems.length > 0){
-                        var title = theApplication.name;
-                        var message = data.inboxItems[0].message;
-                        var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
-                        var notificationTag = data.inboxItems[0]._id;
+                    request.onerror = function(event) {
+                        reject(event);
+                    };
 
-                        self.clients.matchAll().then(function(clients) {
-                            clients.forEach(function(client) {
-                                client.postMessage(JSON.stringify({cmd: 'notificationreceived', message: data.inboxItems[0].notification}));
-                            });
-                        });
+                    request.onsuccess = function(event) {
+                        theConfig = request.result;
 
-                        return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
+                        return fetch(theConfig.apiUrl + '/application/info', {
                             headers: new Headers({
                                 "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
                             })
                         }).then(function(response) {
                             return response.json();
-                        }).then(function(data) {
+                        }).then(function(info) {
 
-                            var actions = [];
-                            data.notification.actions.forEach(function(a){
-                                actions.push({
-                                    title: a.label,
-                                    action: a.label
-                                });
-                            });
-                            return self.registration.showNotification(title, {
-                                body: message,
-                                icon: icon,
-                                tag: notificationTag,
-                                actions: actions
-                            });
-                        });
+                            var application = info.application;
+                            theApplication = application;
 
-                    } else {
-                        return null;
-                    }
-                }).catch(function(err) {
-                    console.log('Notificare: Failed to fetch message', err);
-                    return null;
-                })
+                            return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
+                                headers: new Headers({
+                                    "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
+                                })
+                            }).then(function(response) {
+                                return response.json();
+                            }).then(function(data) {
 
-            }).catch(function(e){
-                console.log('Notificare: Failed to get application info', e);
-                return null;
+                                if(data && data.inboxItems && data.inboxItems.length > 0){
+                                    var title = theApplication.name;
+                                    var message = data.inboxItems[0].message;
+                                    var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
+                                    var notificationTag = data.inboxItems[0]._id;
+
+                                    self.clients.matchAll().then(function(clients) {
+                                        clients.forEach(function(client) {
+                                            client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: data.inboxItems[0].notification}));
+                                        });
+                                    });
+
+                                    return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
+                                        headers: new Headers({
+                                            "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
+                                        })
+                                    }).then(function(response) {
+                                        return response.json();
+                                    }).then(function(data) {
+
+                                        var actions = [];
+                                        data.notification.actions.forEach(function(a){
+                                            actions.push({
+                                                title: a.label,
+                                                action: a.label
+                                            });
+                                        });
+                                        return self.registration.showNotification(title, {
+                                            body: message,
+                                            icon: icon,
+                                            tag: notificationTag,
+                                            actions: actions
+                                        });
+
+                                        resolve(theConfig);
+
+                                    });
+
+                                } else {
+                                    reject(null);
+                                }
+                            }).catch(function(err) {
+                                console.log('Notificare: Failed to fetch message', err);
+                                reject(err);
+                            })
+
+                        }).catch(function(e){
+                            console.log('Notificare: Failed to get application info', e);
+                            reject(e);
+                        })
+
+                    };
+                };
+
             })
 
         }).catch(function(e){
@@ -119,7 +138,7 @@ self.addEventListener('notificationclick', function (event) {
 
                         clients.matchAll().then(function(clients) {
                             clients.forEach(function(client) {
-                                client.postMessage(JSON.stringify({cmd: 'notificationreplied', message: event.notification.tag, action: event.action}));
+                                client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action}));
                             });
                         });
 
@@ -142,7 +161,7 @@ self.addEventListener('notificationclick', function (event) {
 
                             self.clients.matchAll().then(function(clients) {
                                 clients.forEach(function(client) {
-                                    client.postMessage(JSON.stringify({cmd: 'notificationreplied', message: event.notification.tag, action: event.action}));
+                                    client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action}));
                                 });
                             });
 
@@ -169,7 +188,7 @@ self.addEventListener('activate', function (event) {
     clients.claim();
     clients.matchAll().then(function(clients) {
         clients.forEach(function(client) {
-            client.postMessage(JSON.stringify({cmd: 'workeractivated'}));
+            client.postMessage(JSON.stringify({cmd: 'activate'}));
         });
     });
 });
@@ -186,10 +205,9 @@ self.addEventListener("message", function(e) {
 
     switch(data.action) {
         case 'init':
-            theConfig = data.options;
-            break;
-        case 'update':
-            theConfig = data.options;
+
+            persistToDB(data);
+
             break;
         default:
             console.log(e);
@@ -197,6 +215,63 @@ self.addEventListener("message", function(e) {
     }
 });
 
+/**
+ * Persist config to indexedDB
+ * @param data
+ */
+function persistToDB(data){
+    var openRequest = indexedDB.open("config_db", 1);
+
+    openRequest.onupgradeneeded = function(e) {
+        var thisDB = e.target.result;
+
+        if(!thisDB.objectStoreNames.contains("config")) {
+            thisDB.createObjectStore("config");
+        }
+    };
+
+    openRequest.onsuccess = function(e) {
+        var db = e.target.result;
+        var transaction = db.transaction(["config"],"readwrite");
+        var store = transaction.objectStore("config");
+
+        var request = store.get(1);
+
+        request.onerror = function(event) {
+
+            var request = store.add(data.options, 1);
+            request.onerror = function(e) {
+                console.log(e);
+            };
+
+            request.onsuccess = function(e) {
+                console.log("Notificare: Configuration data stored successfully");
+            };
+
+        };
+
+        request.onsuccess = function(event) {
+            // Delete the specified record out of the object store
+            var request = store.delete(1);
+
+            request.onsuccess = function(event) {
+                var request = store.add(data.options, 1);
+                request.onerror = function(e) {
+                    console.log(e);
+                };
+
+                request.onsuccess = function(e) {
+                    console.log("Notificare: Configuration data stored successfully");
+                };
+            };
+        };
+
+    };
+
+    openRequest.onerror = function(e) {
+        console.log(e);
+    };
+}
 /**
  * Handles Device Token
  * @param deviceToken
