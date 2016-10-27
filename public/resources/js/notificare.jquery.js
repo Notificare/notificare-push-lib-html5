@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.2',
+            sdkVersion: '1.9.3',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",

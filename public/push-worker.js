@@ -16,7 +16,7 @@ self.addEventListener('push', function (event) {
         self.registration.pushManager.getSubscription().then(function(deviceSubscription){
 
             return new Promise(function(resolve, reject){
-                var openRequest = indexedDB.open("config_db", 1);
+                var openRequest = indexedDB.open("config_db");
 
                 openRequest.onsuccess = function(e) {
                     var db = e.target.result;
@@ -220,7 +220,7 @@ self.addEventListener("message", function(e) {
  * @param data
  */
 function persistToDB(data){
-    var openRequest = indexedDB.open("config_db", 1);
+    var openRequest = indexedDB.open("config_db");
 
     openRequest.onupgradeneeded = function(e) {
         var thisDB = e.target.result;
