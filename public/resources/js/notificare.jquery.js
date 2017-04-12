@@ -720,7 +720,6 @@
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
                 data: JSON.stringify({
-                    auth_token: this.options.token,
                     deviceID : uuid,
                     oldDeviceID: (this._getCookie('uuid') && this._getCookie('uuid') != uuid) ? this._getCookie('uuid') : null,
                     keys: keys,
