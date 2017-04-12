@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.3',
+            sdkVersion: '1.9.4',
             websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
             wssUrl: "wss://websocket.notifica.re",
@@ -45,7 +45,7 @@
             this.maxReconnectTimeout = 60000;
             this.allowedNotifications = false;
             this.safariPush = false;
-            this.chromePush = false;
+            this.webPush = false;
 
             //Initial set of regions, location and badge
             if(typeof(Storage) !== "undefined") {
@@ -56,7 +56,7 @@
                 if(!localStorage.getItem("position")){
                     localStorage.setItem("position", JSON.stringify({
                         latitude: 0.0,
-                        longitude: 0.0,
+                        longitude: 0.0
                     }));
                 }
 
@@ -188,11 +188,14 @@
                         $(this.element).trigger("notificare:didReceiveDeviceToken", data.deviceToken);
                     }
 
-                } else if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1 &&
-                    'serviceWorker' in navigator &&
+                } else if ('serviceWorker' in navigator &&
                     'showNotification' in ServiceWorkerRegistration.prototype &&
                     'PushManager' in window &&
                     isServiceWorkerCapable &&
+                    this.applicationInfo.websitePushConfig &&
+                    this.applicationInfo.websitePushConfig.gcmApiKey &&
+                    this.applicationInfo.websitePushConfig.vapid &&
+                    this.applicationInfo.websitePushConfig.vapid.publicKey &&
                     this.options.serviceWorker &&
                     this.options.serviceWorkerScope) {
 
@@ -207,19 +210,22 @@
                                 var data = JSON.parse(msg.data);
                                 switch(data.cmd) {
                                     case 'notificationclick':
-                                        this._handleClickOnChromeNotification(data.message);
+                                        this._handleClickOnWebPushNotification(data.message);
                                         break;
                                     case 'notificationreceive':
                                         this._getChromeNotification(data.message);
                                         break;
                                     case 'notificationreply':
-                                        this._handleActionClickOnChromeNotification(data.message, data.action);
+                                        this._handleActionClickOnWebPushNotification(data.message, data.action);
                                         break;
                                     case 'activate':
                                         this._sendMessage({
                                             action: "init",
                                             options: this.options
                                         });
+                                        break;
+                                    case 'pushsubscriptionchange':
+                                        this._reregisterSubscription();
                                         break;
                                     default:
                                         break;
@@ -234,17 +240,21 @@
                             serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
                                 // Enable any UI which subscribes / unsubscribes from
                                 // push messages.
-                                if (!subscription) {
+                                if (!subscription || !subscription.options || !subscription.options.applicationServerKey || this._arrayBufferToBase64Url(subscription.options.applicationServerKey) !== this.applicationInfo.websitePushConfig.vapid.publicKey) {
                                     // subscribe for push notifications
-                                    serviceWorkerRegistration.pushManager.subscribe({
+                                    var subscriptionOptions = {
                                         name: 'push',
                                         userVisibleOnly: true
-                                    }).then(function(subscription) {
+                                    };
+                                    if (this.applicationInfo.websitePushConfig.vapid.publicKey) {
+                                        subscriptionOptions.applicationServerKey = this._base64UrlToUint8Array(this.applicationInfo.websitePushConfig.vapid.publicKey);
+                                    }
+                                    serviceWorkerRegistration.pushManager.subscribe(subscriptionOptions).then(function(subscription) {
                                         // The subscription was successful
-                                        pushToken = this._getPushToken(subscription);
                                         this.allowedNotifications = true;
-                                        this.chromePush = true;
-                                        $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
+                                        this.webPush = true;
+                                        // Send push keys along with event
+                                        $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
 
                                         //It's the first time, let's create an install event
                                         this.logEvent({
@@ -267,13 +277,11 @@
                                             }.bind(this), 2000);
                                         }
                                     }.bind(this));
-                                    return;
+                                } else {
+                                    this.allowedNotifications = true;
+                                    this.webPush = true;
+                                    $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
                                 }
-                                var pushToken = this._getPushToken(subscription);
-                                this.allowedNotifications = true;
-                                this.chromePush = true;
-                                $(this.element).trigger("notificare:didReceiveDeviceToken", pushToken);
-
                             }.bind(this)).catch(function(err) {
                                 //Let's try again
                                 setTimeout(function() {
@@ -523,15 +531,69 @@
 
         },
 
-        _getPushToken: function(pushSubscription){
-            var pushToken = '';
-            if (pushSubscription.subscriptionId) {
-                pushToken = pushSubscription.subscriptionId;
-            } else {
-                pushToken = pushSubscription.endpoint.split('/').pop();
+        _getPushToken: function(pushSubscription) {
+            return {
+                endpoint: pushSubscription.endpoint,
+                keys: this._getPushKeys(pushSubscription)
             }
-            return pushToken;
         },
+
+        _getPushKeys: function(pushSubscription) {
+            if (pushSubscription && pushSubscription.getKey) {
+                var rawKey = pushSubscription.getKey('p256dh');
+                var rawAuthSecret = pushSubscription.getKey('auth');
+                if (rawKey && rawAuthSecret) {
+                    return {
+                        p256dh: this._arrayBufferToBase64(rawKey),
+                        auth: this._arrayBufferToBase64(rawAuthSecret)
+                    };
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        },
+
+        /**
+         * Convert URL-safe base64
+         * @param base64UrlData
+         * @returns {Uint8Array}
+         */
+        _base64UrlToUint8Array: function(base64UrlData) {
+            var padding = '='.repeat((4 - base64UrlData.length % 4) % 4);
+            var base64 = (base64UrlData + padding).replace(/\-/g, '+').replace(/_/g, '/');
+
+            var rawData = window.atob(base64);
+            var buffer = new Uint8Array(rawData.length);
+
+            for (var i = 0; i < rawData.length; ++i) {
+                buffer[i] = rawData.charCodeAt(i);
+            }
+            return buffer;
+        },
+
+        _arrayBufferToBase64: function(buffer) {
+            return uint8ArrayToBase64(new Uint8Array(buffer));
+        },
+
+        _arrayBufferToBase64Url: function(buffer) {
+            return uint8ArrayToBase64Url(new Uint8Array(buffer));
+        },
+
+        _uint8ArrayToBase64: function(bytes) {
+            var rawData = '';
+            const len = bytes.byteLength;
+            for (var i = 0; i < len; i++) {
+                rawData += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(rawData);
+        },
+
+        _uint8ArrayToBase64Url: function(bytes) {
+            return this._uint8ArrayToBase64(bytes).replace(/\//g, '_').replace(/\+/g, '-').replace(/=+$/g, '');
+        },
+
         /**
          * API Requests
          */
@@ -628,22 +690,27 @@
          *
          * Register Device
          * @param uuid
+         * @param keys
          */
-        registerDevice: function (uuid) {
+        registerDevice: function (pushToken) {
             var d = new Date();
 
             var platform = this.options.clientInfo.getOS().name;
+            var transport = 'Websocket';
+
             if(this.safariPush){
                 platform = 'Safari';
-            } else if(this.chromePush){
-                platform = 'Chrome';
+                transport = 'WebsitePush';
+            } else if(this.webPush){
+                transport = 'WebPush';
             }
 
-            var transport = 'Websocket';
-            if(this.safariPush){
-                transport = 'WebsitePush';
-            } else if(this.chromePush){
-                transport = 'GCM';
+            var uuid, keys;
+            if (pushToken.endpoint) {
+                uuid = pushToken.endpoint;
+                keys = pushToken.keys;
+            } else {
+                uuid = pushToken;
             }
 
             $.ajax({
@@ -656,6 +723,7 @@
                     auth_token: this.options.token,
                     deviceID : uuid,
                     oldDeviceID: (this._getCookie('uuid') && this._getCookie('uuid') != uuid) ? this._getCookie('uuid') : null,
+                    keys: keys,
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
                     platform : platform,
@@ -797,11 +865,11 @@
         },
 
         /**
-         * Handle click of a Chrome Notification
+         * Handle click of a WebPush Notification
          * @param notification
          * @private
          */
-        _handleClickOnChromeNotification: function(notification){
+        _handleClickOnWebPushNotification: function(notification){
             var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", notification);
             window.location.replace(url);
             this._onURLLocationChanged();
@@ -812,7 +880,7 @@
          * @param notification
          * @private
          */
-        _handleActionClickOnChromeNotification: function(notification, label){
+        _handleActionClickOnWebPushNotification: function(notification, label){
 
             $.ajax({
                 type: "GET",
@@ -837,7 +905,7 @@
 
             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 setTimeout(function() {
-                    this._handleActionClickOnChromeNotification(notification, label);
+                    this._handleActionClickOnWebPushNotification(notification, label);
                 }.bind(this), 2000);
             }.bind(this));
         },
@@ -1274,7 +1342,7 @@
         _dataURItoBlob: function(dataURI) {
             // convert base64/URLEncoded data component to raw binary data held in a string
             var byteString,
-                mimestring
+                mimestring;
 
             if(dataURI.split(',')[0].indexOf('base64') !== -1 ) {
                 byteString = atob(dataURI.split(',')[1])
@@ -1282,7 +1350,7 @@
                 byteString = decodeURI(dataURI.split(',')[1])
             }
 
-            mimestring = dataURI.split(',')[0].split(':')[1].split(';')[0]
+            mimestring = dataURI.split(',')[0].split(':')[1].split(';')[0];
 
             var content = new Array();
             for (var i = 0; i < byteString.length; i++) {
@@ -1294,6 +1362,7 @@
 
         /**
          * Upload a file of type
+         * @param file
          * @param type
          * @param success
          * @param errors
@@ -1328,11 +1397,7 @@
          * @returns {boolean}
          */
         isDeviceRegistered: function(){
-            if(this._getCookie('uuid')){
-                return true;
-            } else {
-                return false;
-            }
+            return !!this._getCookie('uuid');
         },
         /**
          * Open Notification
@@ -1367,8 +1432,9 @@
             if (msg && msg.notification && msg.notification.message) {
                 if ("Notification" in window) {
 
+                    var n;
                     try {
-                        var n = new Notification(
+                        n = new Notification(
                             this.applicationInfo.name,
                             {
                                 'body': msg.notification.message,
@@ -1388,7 +1454,7 @@
                     } catch (e) {
 
                         //If native Notification is not possible use the window.confirm
-                        var n = window.confirm(msg.notification.message);
+                        n = window.confirm(msg.notification.message);
 
                         if (n == true) {
                             var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
