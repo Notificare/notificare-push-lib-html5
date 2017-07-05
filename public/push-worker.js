@@ -11,6 +11,8 @@ var theApplication = null;
 
 self.addEventListener('push', function (event) {
 
+    var pushData = event.data;
+
     event.waitUntil(
 
         self.registration.pushManager.getSubscription().then(function(deviceSubscription){
@@ -43,60 +45,92 @@ self.addEventListener('push', function (event) {
                             var application = info.application;
                             theApplication = application;
 
-                            return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
-                                headers: new Headers({
-                                    "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                                })
-                            }).then(function(response) {
-                                return response.json();
-                            }).then(function(data) {
 
-                                if(data && data.inboxItems && data.inboxItems.length > 0){
-                                    var title = theApplication.name;
-                                    var message = data.inboxItems[0].message;
-                                    var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
-                                    var notificationTag = data.inboxItems[0]._id;
+                            if (pushData) {
 
-                                    self.clients.matchAll().then(function(clients) {
-                                        clients.forEach(function(client) {
-                                            client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: data.inboxItems[0].notification}));
+                                var payload;
+                                try {
+                                    payload = event.data.json();
+                                } catch (e) {
+                                    payload = {
+                                        alertTitle: 'Push Notification',
+                                        alert: event.data.text()
+                                    }
+                                }
+
+                                if (payload.actions) {
+                                    var actions = [];
+                                    payload.actions.forEach(function (a) {
+                                        actions.push({
+                                            title: a.label,
+                                            action: a.label
                                         });
                                     });
+                                }
 
-                                    return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
-                                        headers: new Headers({
-                                            "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                                        })
-                                    }).then(function(response) {
-                                        return response.json();
-                                    }).then(function(data) {
+                                return self.registration.showNotification(payload.alertTitle, {
+                                    body: payload.alert,
+                                    icon: payload.icon,
+                                    notificationTag: payload.id,
+                                    action: actions
+                                });
 
-                                        var actions = [];
-                                        data.notification.actions.forEach(function(a){
-                                            actions.push({
-                                                title: a.label,
-                                                action: a.label
+                            } else {
+
+                                return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
+                                    headers: new Headers({
+                                        "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
+                                    })
+                                }).then(function(response) {
+                                    return response.json();
+                                }).then(function(data) {
+
+                                    if(data && data.inboxItems && data.inboxItems.length > 0){
+                                        var title = theApplication.name;
+                                        var message = data.inboxItems[0].message;
+                                        var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
+                                        var notificationTag = data.inboxItems[0]._id;
+
+                                        self.clients.matchAll().then(function(clients) {
+                                            clients.forEach(function(client) {
+                                                client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: data.inboxItems[0].notification}));
                                             });
                                         });
-                                        return self.registration.showNotification(title, {
-                                            body: message,
-                                            icon: icon,
-                                            tag: notificationTag,
-                                            actions: actions
+
+                                        return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
+                                            headers: new Headers({
+                                                "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
+                                            })
+                                        }).then(function(response) {
+                                            return response.json();
+                                        }).then(function(data) {
+
+                                            var actions = [];
+                                            data.notification.actions.forEach(function(a){
+                                                actions.push({
+                                                    title: a.label,
+                                                    action: a.label
+                                                });
+                                            });
+                                            return self.registration.showNotification(title, {
+                                                body: message,
+                                                icon: icon,
+                                                tag: notificationTag,
+                                                actions: actions
+                                            });
+
+                                            resolve(theConfig);
+
                                         });
 
-                                        resolve(theConfig);
-
-                                    });
-
-                                } else {
-                                    reject(null);
-                                }
-                            }).catch(function(err) {
-                                console.log('Notificare: Failed to fetch message', err);
-                                reject(err);
-                            })
-
+                                    } else {
+                                        reject(null);
+                                    }
+                                }).catch(function(err) {
+                                    console.log('Notificare: Failed to fetch message', err);
+                                    reject(err);
+                                })
+                            }
                         }).catch(function(e){
                             console.log('Notificare: Failed to get application info', e);
                             reject(e);
