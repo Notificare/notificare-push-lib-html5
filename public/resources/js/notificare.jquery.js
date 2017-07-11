@@ -45,6 +45,7 @@
             this.allowedNotifications = false;
             this.safariPush = false;
             this.webPush = false;
+            this.serviceWorkerRegistration = null;
 
             //Initial set of regions, location and badge
             if(typeof(Storage) !== "undefined") {
@@ -244,6 +245,7 @@
 
                         navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
 
+                            this.serviceWorkerRegistration = serviceWorkerRegistration;
                             // Are Notifications supported in the service worker?
                             serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
                                 // Enable any UI which subscribes / unsubscribes from
@@ -477,11 +479,9 @@
                 type: "GET",
                 url: '/config.json'
             }).done(function( msg ) {
-
                 success(msg);
-
             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
-                errors(msg);
+                errors(jqXHR);
             }.bind(this));
 
         },
@@ -632,72 +632,36 @@
         unregisterDevice: function (success, errors) {
 
             if (this._getCookie('uuid')) {
-                $.ajax({
-                    type: "DELETE",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
-                    beforeSend: function (xhr) {
-                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                    }.bind(this)
-                }).done(function( msg ) {
-                    this._setCookie("");
-                    localStorage.setItem("badge", 0);
-                    $(this.element).trigger("notificare:didUpdateBadge", 0);
-                    success(msg);
-                }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors("Notificare: Failed to delete a UUID");
-                }.bind(this));
+
+                this.serviceWorkerRegistration.pushManager.getSubscription()
+                    .then(function(subscription) {
+                        if (subscription) {
+                            return subscription.unsubscribe();
+                        }
+                    })
+                    .catch(function(error) {
+                        this.log('Notificare: Error unsubscribing service worker registration', error);
+                    }.bind(this))
+                    .then(function() {
+                        $.ajax({
+                            type: "DELETE",
+                            url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                            beforeSend: function (xhr) {
+                                xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                            }.bind(this)
+                        }).done(function( msg ) {
+                            this._setCookie("");
+                            localStorage.setItem("badge", 0);
+                            $(this.element).trigger("notificare:didUpdateBadge", 0);
+                            success(msg);
+                        }.bind(this))
+                        .fail(function(  jqXHR, textStatus, errorThrown ) {
+                            errors("Notificare: Failed to delete a UUID");
+                        }.bind(this));
+                    }.bind(this));
             }
 
         },
-
-
-        /**
-         * Get a notification object
-         * @param notification
-         * @private
-
-        _getNotification: function (notification) {
-
-            $.ajax({
-                type: "GET",
-                url: this.options.apiUrl + '/notification/' + notification.id,
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                }.bind(this)
-            }).done(function( msg ) {
-                if(this.allowedNotifications){
-
-                    if(this.options.soundsDir && notification.sound){
-                        var audio = new Audio(this.options.soundsDir + notification.sound);
-                        audio.load();
-                        audio.play();
-                    }
-                    this.showNotification(msg);
-                }
-
-                this.logEvent({
-                    sessionID: this.uniqueId,
-                    type: 're.notifica.event.notification.Receive',
-                    notification: notification.notificationId || notification.id,
-                    userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid')
-                },  function(data){
-
-                }, function(error){
-
-                });
-
-                $(this.element).trigger("notificare:didReceiveNotification", notification);
-
-            }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
-                setTimeout(function() {
-                    this._getNotification(notification);
-                }.bind(this), 2000);
-            }.bind(this));
-
-        },
-         */
 
         /**
          * Get a notification object
@@ -1303,10 +1267,12 @@
 
         },
 
+
         /**
          * Show notification
          * @param msg
          */
+        /*
         showNotification: function (msg) {
 
             if (msg && msg.notification && msg.notification.message) {
@@ -1383,7 +1349,7 @@
             this._refreshBadge();
 
         },
-
+        */
         /**
          * Load Notification on URLLocationChanged
          * @private
