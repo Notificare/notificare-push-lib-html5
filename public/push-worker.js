@@ -3,150 +3,32 @@
  *  http://notifica.re
  *
  *  @author Joel Oliveira joel@notifica.re
- *  copyright 2015 Notificare
+ *  @author Joris Verbogt joris@notifica.re
+ *  copyright 2017 Notificare
  */
-
-var theConfig = null;
-var theApplication = null;
 
 self.addEventListener('push', function (event) {
 
-    var pushData = event.data;
+    var payload = event.data.json();
 
-    event.waitUntil(
+    if (payload.actions) {
+        var actions = [];
+        payload.actions.forEach(function (a) {
+            actions.push({
+                title: a.label,
+                action: a.label
+            });
+        });
+    }
 
-        self.registration.pushManager.getSubscription().then(function(deviceSubscription){
-
-            return new Promise(function(resolve, reject){
-                var openRequest = indexedDB.open("config_db");
-
-                openRequest.onsuccess = function(e) {
-                    var db = e.target.result;
-                    var transaction = db.transaction(["config"], "readonly");
-                    var objectStore = transaction.objectStore("config");
-
-                    var request = objectStore.get(1);
-
-                    request.onerror = function(event) {
-                        reject(event);
-                    };
-
-                    request.onsuccess = function(event) {
-                        theConfig = request.result;
-
-                        return fetch(theConfig.apiUrl + '/application/info', {
-                            headers: new Headers({
-                                "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                            })
-                        }).then(function(response) {
-                            return response.json();
-                        }).then(function(info) {
-
-                            var application = info.application;
-                            theApplication = application;
-
-
-                            if (pushData) {
-
-                                var payload;
-                                try {
-                                    payload = event.data.json();
-                                } catch (e) {
-                                    payload = {
-                                        alertTitle: 'Push Notification',
-                                        alert: event.data.text()
-                                    }
-                                }
-
-                                if (payload.actions) {
-                                    var actions = [];
-                                    payload.actions.forEach(function (a) {
-                                        actions.push({
-                                            title: a.label,
-                                            action: a.label
-                                        });
-                                    });
-                                }
-
-                                return self.registration.showNotification(payload.alertTitle, {
-                                    body: payload.alert,
-                                    icon: payload.icon,
-                                    notificationTag: payload.id,
-                                    action: actions
-                                });
-
-                            } else {
-
-                                return fetch(theConfig.apiUrl + '/notification/inbox/fordevice/' + getPushToken(deviceSubscription) + '?skip=0&limit=1',{
-                                    headers: new Headers({
-                                        "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                                    })
-                                }).then(function(response) {
-                                    return response.json();
-                                }).then(function(data) {
-
-                                    if(data && data.inboxItems && data.inboxItems.length > 0){
-                                        var title = theApplication.name;
-                                        var message = data.inboxItems[0].message;
-                                        var icon = theConfig.awsStorage + theApplication.websitePushConfig.icon;
-                                        var notificationTag = data.inboxItems[0]._id;
-
-                                        self.clients.matchAll().then(function(clients) {
-                                            clients.forEach(function(client) {
-                                                client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: data.inboxItems[0].notification}));
-                                            });
-                                        });
-
-                                        return fetch(theConfig.apiUrl + '/notification/' + data.inboxItems[0].notification ,{
-                                            headers: new Headers({
-                                                "Authorization": "Basic " + btoa(theConfig.appKey + ":" + theConfig.appSecret)
-                                            })
-                                        }).then(function(response) {
-                                            return response.json();
-                                        }).then(function(data) {
-
-                                            var actions = [];
-                                            data.notification.actions.forEach(function(a){
-                                                actions.push({
-                                                    title: a.label,
-                                                    action: a.label
-                                                });
-                                            });
-                                            return self.registration.showNotification(title, {
-                                                body: message,
-                                                icon: icon,
-                                                tag: notificationTag,
-                                                actions: actions
-                                            });
-
-                                            resolve(theConfig);
-
-                                        });
-
-                                    } else {
-                                        reject(null);
-                                    }
-                                }).catch(function(err) {
-                                    console.log('Notificare: Failed to fetch message', err);
-                                    reject(err);
-                                })
-                            }
-                        }).catch(function(e){
-                            console.log('Notificare: Failed to get application info', e);
-                            reject(e);
-                        })
-
-                    };
-                };
-
-            })
-
-        }).catch(function(e){
-            console.log('Notificare: Failed to get subscription', e);
-            return null;
-        })
-
-    );
+    event.waitUntil(self.registration.showNotification(payload.application, {
+        body: payload.alert,
+        icon: payload.icon,
+        tag: payload.id,
+        actions: actions,
+        data: payload,
+        requireInteraction: true
+    }));
 
 });
 
@@ -154,6 +36,8 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
 
     event.notification.close();
+
+    console.log(event);
 
     event.waitUntil(
 
@@ -164,7 +48,7 @@ self.addEventListener('notificationclick', function (event) {
 
             if (clientList.length == 0) {
 
-                var url = theConfig.appHost;
+                var url = "";
 
                 if (event.action) {
 
@@ -179,7 +63,7 @@ self.addEventListener('notificationclick', function (event) {
                     }, 2000);
 
                 } else {
-                    url = theApplication.websitePushConfig.urlFormatString.replace("%@", event.notification.tag);
+                    url = event.notification.data.urlFormatString.replace("%@", event.notification.tag);
 
                 }
 
@@ -189,7 +73,7 @@ self.addEventListener('notificationclick', function (event) {
 
                 clientList.forEach(function(client) {
 
-                    if (client  && client.url.indexOf(theConfig.appHost) > -1 && 'focus' in client){
+                    if (client  && event.notification.data.urlFormatString.match(client.url) && 'focus' in client){
 
                         if (event.action) {
 
@@ -249,85 +133,9 @@ self.addEventListener("message", function(e) {
 
     switch(data.action) {
         case 'init':
-
-            persistToDB(data);
-
             break;
         default:
             console.log(e);
             break;
     }
 });
-
-/**
- * Persist config to indexedDB
- * @param data
- */
-function persistToDB(data){
-    var openRequest = indexedDB.open("config_db");
-
-    openRequest.onupgradeneeded = function(e) {
-        var thisDB = e.target.result;
-
-        if(!thisDB.objectStoreNames.contains("config")) {
-            thisDB.createObjectStore("config");
-        }
-    };
-
-    openRequest.onsuccess = function(e) {
-        var db = e.target.result;
-        var transaction = db.transaction(["config"],"readwrite");
-        var store = transaction.objectStore("config");
-
-        var request = store.get(1);
-
-        request.onerror = function(event) {
-
-            var request = store.add(data.options, 1);
-            request.onerror = function(e) {
-                console.log(e);
-            };
-
-            request.onsuccess = function(e) {
-                console.log("Notificare: Configuration data stored successfully");
-            };
-
-        };
-
-        request.onsuccess = function(event) {
-            // Delete the specified record out of the object store
-            var request = store.delete(1);
-
-            request.onsuccess = function(event) {
-                var request = store.add(data.options, 1);
-                request.onerror = function(e) {
-                    console.log(e);
-                };
-
-                request.onsuccess = function(e) {
-                    console.log("Notificare: Configuration data stored successfully");
-                };
-            };
-        };
-
-    };
-
-    openRequest.onerror = function(e) {
-        console.log(e);
-    };
-}
-/**
- * Handles Device Token
- * @param deviceToken
- * @returns {string}
- */
-function getPushToken(deviceToken) {
-    var pushToken = '';
-    if (deviceToken.subscriptionId) {
-        pushToken = deviceToken.subscriptionId;
-    }
-    else {
-        pushToken = deviceToken.endpoint.split('/').pop();
-    }
-    return pushToken;
-}

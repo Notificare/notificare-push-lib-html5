@@ -1,3 +1,8 @@
+1.9.4 - 11-07-2017 Joel Oliveira
+- Removed support for WebSockets
+- Added support for WebPush protocol in Chrome, Firefox and Opera
+- Refactored Service Worker to use notification payload
+
 1.9.3 - 26-10-2016 Joel Oliveira
 - Allow browser to determine indexedDB version
 

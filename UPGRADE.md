@@ -39,7 +39,7 @@ Add the following inside config.json in the root of your web server:
       "appSecret": "YOUR_APP_SECRET_HERE",
       "allowSilent": true,
       "soundsDir": "/resources/sounds/",
-      "serviceWorker": "push-worker.js",
+      "serviceWorker": "push-worker-old.js",
       "serviceWorkerScope": "./",
       "geolocationOptions": {
         "timeout": 60000,
@@ -50,7 +50,7 @@ Add the following inside config.json in the root of your web server:
     
 ```
 
-For Chrome notifications, please also add the included push-worker.js file in the same level as your index file.
+For Chrome notifications, please also add the included push-worker-old.js file in the same level as your index file.
 This will make sure your web app is able to receive notifications in Chrome even when users are not at your website.
 
 In this version we've added inbox capabilities, after a successful device registration, you can safely retrieve the list of messages, as follows:

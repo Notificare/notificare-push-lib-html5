@@ -13,9 +13,8 @@
     var pluginName = "notificare",
         defaults = {
             sdkVersion: '1.9.4',
-            websitePushUrl: "https://push.notifica.re/website-push/safari",
             fullHost: window.location.protocol + '//' +  window.location.host,
-            wssUrl: "wss://websocket.notifica.re",
+            //wssUrl: "wss://websocket.notifica.re",
             protocols: ['notificare-push'],
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -70,9 +69,11 @@
                 if(this.options.useTestEnv){
                     this.options.apiUrl = "https://cloud-test.notifica.re/api";
                     this.options.awsStorage = "https://push-test.notifica.re/upload";
+                    this.options.websitePushUrl = "https://push-test.notifica.re/website-push/safari";
                 } else {
                     this.options.apiUrl = "https://cloud.notifica.re/api";
                     this.options.awsStorage = "https://push.notifica.re/upload";
+                    this.options.websitePushUrl = "https://push.notifica.re/website-push/safari";
                 }
                 this._getApplicationInfo();
             } else {
@@ -81,9 +82,11 @@
                     if(this.options.useTestEnv){
                         this.options.apiUrl = "https://cloud-test.notifica.re/api";
                         this.options.awsStorage = "https://push-test.notifica.re/upload";
+                        this.options.websitePushUrl = "https://push-test.notifica.re/website-push/safari";
                     } else {
                         this.options.apiUrl = "https://cloud.notifica.re/api";
                         this.options.awsStorage = "https://push.notifica.re/upload";
+                        this.options.websitePushUrl = "https://push.notifica.re/website-push/safari";
                     }
                     this._getApplicationInfo();
 
@@ -132,6 +135,9 @@
             }.bind(this));
         },
 
+        /**
+         * Register for Notifications, triggered by the developer
+         */
         registerForNotifications: function(){
 
             var isServiceWorkerCapable = false;
@@ -179,9 +185,7 @@
 
                         }.bind(this));
                     } else if (data.permission == 'denied') {
-                        if(this.options.allowSilent){
-                            this._setSocket();
-                        }
+                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", data);
                     } else if (data.permission == 'granted') {
                         this.allowedNotifications = true;
                         this.safariPush = true;
@@ -213,7 +217,7 @@
                                         this._handleClickOnWebPushNotification(data.message);
                                         break;
                                     case 'notificationreceive':
-                                        this._getChromeNotification(data.message);
+                                        this._getNotification(data.message);
                                         break;
                                     case 'notificationreply':
                                         this._handleActionClickOnWebPushNotification(data.message, data.action);
@@ -225,7 +229,8 @@
                                         });
                                         break;
                                     case 'pushsubscriptionchange':
-                                        this._reregisterSubscription();
+                                        //@TODO: register the device whenever this is triggered
+                                        //this._reregisterSubscription();
                                         break;
                                     default:
                                         break;
@@ -268,9 +273,7 @@
 
                                     }.bind(this)).catch(function(e) {
                                         if (Notification.permission === 'denied') {
-                                            if(this.options.allowSilent){
-                                                this._setSocket();
-                                            }
+
                                         } else {
                                             setTimeout(function() {
                                                 this.registerForNotifications();
@@ -283,6 +286,7 @@
                                     $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
                                 }
                             }.bind(this)).catch(function(err) {
+                                $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
                                 //Let's try again
                                 setTimeout(function() {
                                     this.registerForNotifications();
@@ -291,6 +295,7 @@
                         }.bind(this));
 
                     }.bind(this)).catch(function(err) {
+                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
                         setTimeout(function() {
                             this.registerForNotifications();
                         }.bind(this), 2000);
@@ -298,6 +303,7 @@
 
                 } else {
 
+                    /*
                     //Continue with Websockets
 
                     //Modern browsers using window.Notification
@@ -376,7 +382,13 @@
                             this._setSocket();
                         }
                     }
+
+                     */
+
+                    this.log("Notificare: Your browser does not support web push");
+
                 }
+
 
             } else {
                 this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed");
@@ -460,7 +472,7 @@
         /**
          * Reconnect Websockets
          * @private
-         */
+
         _reconnect: function() {
             this.reconnectTimeout = this.reconnectTimeout * 2;
             if (this.reconnectTimeout < this.minReconnectTimeout) {
@@ -474,10 +486,11 @@
                 this._setSocket();
             }.bind(this), this.reconnectTimeout);
         },
+         */
         /**
          * Manage websockets connections
          * @private
-         */
+
         _setSocket: function () {
 
             if ("WebSocket" in window){
@@ -530,7 +543,14 @@
             }
 
         },
+         */
 
+        /**
+         * Retrieve a Push Token
+         * @param pushSubscription
+         * @returns {{endpoint: *, keys: (*|{p256dh, auth})}}
+         * @private
+         */
         _getPushToken: function(pushSubscription) {
             return {
                 endpoint: pushSubscription.endpoint,
@@ -538,6 +558,12 @@
             }
         },
 
+        /**
+         * Retrieve Push Keys
+         * @param pushSubscription
+         * @returns {*}
+         * @private
+         */
         _getPushKeys: function(pushSubscription) {
             if (pushSubscription && pushSubscription.getKey) {
                 var rawKey = pushSubscription.getKey('p256dh');
@@ -574,11 +600,11 @@
         },
 
         _arrayBufferToBase64: function(buffer) {
-            return uint8ArrayToBase64(new Uint8Array(buffer));
+            return this._uint8ArrayToBase64(new Uint8Array(buffer));
         },
 
         _arrayBufferToBase64Url: function(buffer) {
-            return uint8ArrayToBase64Url(new Uint8Array(buffer));
+            return this._uint8ArrayToBase64Url(new Uint8Array(buffer));
         },
 
         _uint8ArrayToBase64: function(bytes) {
@@ -632,6 +658,7 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
+
                     this.applicationInfo = msg.application;
                     this.services = msg.application.services;
 
@@ -664,6 +691,12 @@
 
         },
 
+        /**
+         * Handle Messages to worker
+         * @param message
+         * @returns {Promise}
+         * @private
+         */
         _sendMessage: function(message) {
             // This wraps the message posting/response in a promise, which will resolve if the response doesn't
             // contain an error, and reject with the error if it does. If you'd prefer, it's possible to call
@@ -695,8 +728,8 @@
         registerDevice: function (pushToken) {
             var d = new Date();
 
-            var platform = this.options.clientInfo.getOS().name;
-            var transport = 'Websocket';
+            var platform = this.options.clientInfo.getBrowser().name;
+            var transport = "N/A";
 
             if(this.safariPush){
                 platform = 'Safari';
@@ -726,11 +759,12 @@
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
                     platform : platform,
-                    osVersion : this.options.clientInfo.getOS().version,
+                    osString : this.options.clientInfo.getBrowser().name + ' ' + this.options.clientInfo.getBrowser().major,
+                    osVersion : this.options.clientInfo.getBrowser().major,
                     sdkVersion : this.options.sdkVersion,
                     appVersion : this.options.appVersion,
                     language: window.navigator.userLanguage || window.navigator.language,
-                    deviceString : window.navigator.platform, //to get better
+                    deviceString : this.options.clientInfo.getBrowser().name + ' ' + this.options.clientInfo.getBrowser().major + ' | ' + this.options.clientInfo.getOS().name + ' ' + this.options.clientInfo.getOS().version,
                     transport : transport,
                     timeZoneOffset : (d.getTimezoneOffset()/60) * -1
                 }),
@@ -759,22 +793,24 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
-                        this._setCookie("");
-                        localStorage.setItem("badge", 0);
-                        $(this.element).trigger("notificare:didUpdateBadge", 0);
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to delete a UUID");
-                    }.bind(this));
+                    this._setCookie("");
+                    localStorage.setItem("badge", 0);
+                    $(this.element).trigger("notificare:didUpdateBadge", 0);
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to delete a UUID");
+                }.bind(this));
             }
 
         },
+
+
         /**
          * Get a notification object
          * @param notification
          * @private
-         */
+
         _getNotification: function (notification) {
 
             $.ajax({
@@ -815,14 +851,14 @@
             }.bind(this));
 
         },
-
+         */
 
         /**
-         * Get a notification object for a Chrome event
+         * Get a notification object
          * @param notification
          * @private
          */
-        _getChromeNotification: function (notification) {
+        _getNotification: function (notification) {
 
             $.ajax({
                 type: "GET",
@@ -857,7 +893,7 @@
                 this._refreshBadge();
             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
                 setTimeout(function() {
-                    this._getChromeNotification(notification);
+                    this._getNotification(notification);
                 }.bind(this), 2000);
             }.bind(this));
 
@@ -1609,7 +1645,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/tags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/tags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1633,7 +1669,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/addtags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/addtags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1663,7 +1699,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/removetag',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/removetag',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1692,7 +1728,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/cleartags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/cleartags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1720,7 +1756,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/userdata',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/userdata',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1744,7 +1780,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/userdata',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/userdata',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1771,7 +1807,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/dnd',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/dnd',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1798,7 +1834,7 @@
 
                     $.ajax({
                         type: "PUT",
-                        url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/dnd',
+                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/dnd',
                         beforeSend: function (xhr) {
                             xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                         }.bind(this),
@@ -1832,7 +1868,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + this._getCookie('uuid') + '/cleardnd',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/cleardnd',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1945,7 +1981,7 @@
 
             $.ajax({
                 type: "PUT",
-                url: this.options.apiUrl + '/device/' + this._getCookie('uuid'),
+                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
@@ -1985,7 +2021,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -2041,7 +2077,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "DELETE",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -2091,7 +2127,7 @@
             if (this._getCookie('uuid')) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + this._getCookie('uuid'),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
                     data:{
                         since: new Date().getTime()
                     },

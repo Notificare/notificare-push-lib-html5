@@ -5,7 +5,7 @@
   "appSecret": "YOUR APPLICATION SECRET",
   "allowSilent": true,
   "soundsDir": "/resources/sounds/",
-  "serviceWorker": "push-worker.js",
+  "serviceWorker": "push-worker-old.js",
   "serviceWorkerScope": "./",
   "geolocationOptions": {
     "timeout": 60000,
