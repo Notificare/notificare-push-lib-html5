@@ -9,6 +9,7 @@
 
 self.addEventListener('push', function (event) {
 
+
     var payload = event.data.json();
 
     if (payload.actions) {
@@ -21,13 +22,18 @@ self.addEventListener('push', function (event) {
         });
     }
 
+    self.clients.matchAll().then(function(clients) {
+        clients.forEach(function(client) {
+            client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: payload.id}));
+        });
+    });
+
     event.waitUntil(self.registration.showNotification(payload.application, {
         body: payload.alert,
         icon: payload.icon,
         tag: payload.id,
         actions: actions,
-        data: payload,
-        requireInteraction: true
+        data: payload
     }));
 
 });
@@ -36,8 +42,6 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
 
     event.notification.close();
-
-    console.log(event);
 
     event.waitUntil(
 
@@ -73,7 +77,7 @@ self.addEventListener('notificationclick', function (event) {
 
                 clientList.forEach(function(client) {
 
-                    if (client  && event.notification.data.urlFormatString.match(client.url) && 'focus' in client){
+                    if (client  && 'focus' in client){
 
                         if (event.action) {
 
