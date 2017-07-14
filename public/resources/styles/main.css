@@ -1,0 +1,96 @@
+.notificare-modal-bg{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    background: rgba(0, 0, 0, .5);
+    right: 0px;
+    bottom: 0px;
+}
+.notificare-modal{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    width: 680px;
+    height: 570px;
+    background: white;
+    padding: 20px;
+    text-align: center;
+}
+.notificare-image, .notificare-camera{
+    width: 640px;
+    height: 480px;
+}
+
+.notificare-text-area{
+    width: 640px;
+    height: 480px;
+    border: 1px solid grey;
+    border-radius: 5px;
+    outline: 0;
+}
+
+.notificare-send, .notificare-cancel, .notificare-capture-image, .notificare-close-modal{
+    display: inline-block;
+    padding: 8px;
+    color: white;
+    margin: 12px 5px 0 0;
+}
+
+.notificare-send, .notificare-capture-image{
+    background: green;
+}
+
+.notificare-close-modal, .notificare-cancel{
+    background: red;
+}
+
+.inbox{
+    position: relative;
+}
+
+#clear-inbox{
+    position: absolute;
+    top: -30px;
+    right: 0px;
+    display: block;
+    color: black;
+}
+
+#inbox-list{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#inbox-list li{
+    position: relative;
+    padding: 0;
+    border: 1px solid black;
+    margin: 0 0 5px 0;
+}
+
+#inbox-list li a{
+    padding: 20px;
+    display: block;
+    color: black;
+    text-decoration: none;
+}
+
+.remove-from-inbox{
+    padding: 0px !important;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+
+.navbar-brand{
+    position: relative;
+}
+#badge{
+    position: absolute;
+    right: 0px;
+    top: 9px;
+    background: #d9534f;
+    color: white;
+}

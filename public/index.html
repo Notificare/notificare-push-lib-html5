@@ -14,60 +14,7 @@
 
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-		<style>
-			.remove-from-inbox{
-				float: right;
-				right: -14px;
-				top: 20px;
-			}
-			.notificare-modal-bg{
-				position: fixed;
-				top: 0px;
-				left: 0px;
-				background: rgba(0, 0, 0, .5);
-				right: 0px;
-				bottom: 0px;
-			}
-			.notificare-modal{
-				position: absolute;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%,-50%);
-				width: 680px;
-				height: 570px;
-				background: white;
-				padding: 20px;
-				text-align: center;
-			}
-			.notificare-image, .notificare-camera{
-				width: 640px;
-				height: 480px;
-			}
-
-			.notificare-text-area{
-				width: 640px;
-				height: 480px;
-				border: 1px solid grey;
-				border-radius: 5px;
-				outline: 0;
-			}
-
-			.notificare-send, .notificare-cancel, .notificare-capture-image, .notificare-close-modal{
-				display: inline-block;
-				padding: 8px;
-				color: white;
-				margin: 12px 5px 0 0;
-			}
-
-			.notificare-send, .notificare-capture-image{
-				background: green;
-			}
-
-			.notificare-close-modal, .notificare-cancel{
-				background: red;
-			}
-
-		</style>
+		<link rel="stylesheet" href="/resources/styles/main.css">
 	</head>
 	<body>
 		<section id="myapp">
@@ -82,301 +29,37 @@
 								<span class="icon-bar"></span>
 								<span class="icon-bar"></span>
 							</button>
-							<a class="navbar-brand" href="http://notifica.re">Project name</a>
+							<a class="navbar-brand" href="http://notifica.re">My Company name <span id="badge" class="badge"></span></a>
 						</div>
 					</div><!--/.container-fluid -->
 				</div>
 				<div class="jumbotron">
-					<h1>My Banner</h1>
-					<p>Quickly bootstrap your html project</p>
+					<h1>My Company</h1>
+					<p>Quickly bootstrap your HTML project</p>
 					<div id="visible-ui" style="display: none;">
-						<div id="is-registered" class="btn-group">
-							<button class="btn btn-default btn-lg dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-								Inbox <span id="badge" class="badge"></span> <span class="caret"></span>
-							</button>
-							<ul id="inbox-list" class="dropdown-menu">
-								<li id="divider" role="separator" class="divider"></li>
-								<li><a id="clear-inbox" href="#">Clear Inbox</a></li>
-							</ul>
-						</div>
 						<a id="disable-notifications" class="btn btn-lg btn-danger" href="#" role="button">Disable Notifications</a>
 						<a id="enable-notifications" class="btn btn-lg btn-success" href="#" role="button">Enable Notifications</a>
-
 					</div>
 				</div>
+
+				<div class="is-registered">
+					<div class="row">
+						<div class="col-md-12">
+							<h2>Inbox</h2>
+							<div class="inbox">
+								<a id="clear-inbox" href="#">Clear Inbox</a>
+								<ul id="inbox-list"></ul>
+							</div>
+						</div>
+					</div>
+				</div>
+
 			</div> <!-- /container -->
 		</section>
 		<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/UAParser.js/0.7.9/ua-parser.min.js"></script>
         <script src="/resources/js/notificare.jquery.js"></script>
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-		<script>
-
-			$(document).ready(function(){
-
-				var instance = $('#myapp').notificare({
-                    "appKey": "2acc53dbce3ad5fad12945bd6d471a15ebd893798a10380b0a8592eeeebee5e9",
-                    "appSecret": "6c695e48ca9a0dba7ff2567800731cb50687318f7c1aaa3e95a739993c471ae5",
-				});
-
-				$("#myapp").bind("notificare:onReady", function(event, data) {
-
-					if(instance.notificare("isDeviceRegistered")){
-						$('#is-registered').show();
-						$('#enable-notifications').hide();
-						$('#disable-notifications').show();
-						instance.notificare("registerForNotifications");
-					} else {
-						$('#is-registered').hide();
-						$('#enable-notifications').show();
-						$('#disable-notifications').hide();
-					}
-
-					$('#visible-ui').show();
-
-					instance.notificare("fetchAssets", "test", function(assets){
-						console.log(assets);
-					}, function(error){
-						console.log(error);
-					});
-
-					/*
-					instance.notificare("fetchUserData", function(userData){
-						console.log(userData);
-					}, function(error){
-						console.log(error);
-					});
-
-					instance.notificare("updateUserData", {
-						firstName: "MASSIMO",
-						lastName: "GONDOLIERI"
-					}, function(msg){
-						console.log(msg);
-					}, function(error){
-						console.log(error);
-					});
-					*/
-
-					/*
-					instance.notificare("fetchDoNotDisturb", function(dnd){
-						console.log(dnd);
-					}, function(error){
-						console.log(error);
-					});
-					*/
-
-					/*
-					instance.notificare("updateDoNotDisturb", "01:00" , "07:00" , function(msg){
-						console.log(msg);
-					}, function(error){
-						console.log(error);
-					});
-
-					instance.notificare("clearDoNotDisturb" , function(msg){
-						console.log(msg);
-					}, function(error){
-						console.log(error);
-					});
-					*/
-
-				});
-
-				$("#myapp").bind("notificare:didReceiveDeviceToken", function(event, data) {
-					//instance.notificare("userId","userID");
-					//instance.notificare("username","userName");
-					instance.notificare("registerDevice",data);
-				});
-
-				$("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
-					//Here it's safe to register tags
-
-					$('#is-registered').show();
-					$('#enable-notifications').hide();
-					$('#disable-notifications').show();
-
-					instance.notificare("getTags", function(tags){
-						//console.log(tags);
-					}, function(error){
-						console.log(error);
-					});
-
-					instance.notificare("startLocationUpdates", function(data){
-						console.log(data);
-					}, function(error){
-						console.log(error);
-					});
-
-					instance.notificare("fetchInbox", function(inboxItems){
-
-						refreshInbox(inboxItems);
-
-					}, function(error){
-						console.log(error);
-					});
-
-				});
-
-				$("#myapp").bind("notificare:didFailToRegisterDevice", function(event, data) {
-					instance.notificare("registerDevice", data);
-
-
-				});
-
-				$("#myapp").bind("notificare:didReceiveNotification", function(event, data) {
-
-					instance.notificare("fetchInbox", function(inboxItems){
-
-						refreshInbox(inboxItems);
-
-					}, function(error){
-						console.log(error);
-					});
-				});
-
-				$("#myapp").bind("notificare:didOpenNotification", function(event, data) {
-
-					instance.notificare("fetchInbox", function(inboxItems){
-
-						refreshInbox(inboxItems);
-
-					}, function(error){
-						console.log(error);
-					});
-
-				});
-
-				$("#myapp").bind("notificare:didUpdateBadge", function(event, data) {
-					instance.notificare("log", 'didUpdateBadge: ' + data);
-					if (data > 0) {
-						$("#badge").text(data);
-						$("#badge").show();
-					} else {
-						$("#badge").hide();
-					}
-
-					instance.notificare("fetchInbox", function(inboxItems){
-
-						refreshInbox(inboxItems);
-
-					}, function(error){
-						console.log(error);
-					});
-
-				});
-
-				$("#myapp").bind("notificare:willExecuteAction", function(event, data) {
-					instance.notificare("log", 'willExecuteAction: ' + data);
-				});
-
-				$("#myapp").bind("notificare:shouldPerformActionWithURL", function(event, data) {
-					instance.notificare("log", 'shouldPerformActionWithURL: ' + data);
-				});
-
-				$("#myapp").bind("notificare:didFailToExecuteAction", function(event, data) {
-					instance.notificare("log", 'didFailToExecuteAction: ' + data);
-				});
-
-				$("#myapp").bind("notificare:didExecuteAction", function(event, data) {
-					instance.notificare("log", 'didExecuteAction: ' + data);
-				});
-
-				$("#myapp").bind("notificare:didNotExecuteAction", function(event, data) {
-					instance.notificare("log", 'didNotExecuteAction: ' + data);
-				});
-
-
-				/**
-				 * Example methods
-                 */
-
-				function refreshInbox(inboxItems){
-
-					$(".open-inbox-message").parent().remove();
-
-					$.each( inboxItems.reverse(), function( key, value ) {
-						if (value.opened) {
-							$("#inbox-list").prepend('<li><a href="' + value._id + '" class="remove-from-inbox"><span class="glyphicon glyphicon-remove"></span></a><a class="open-inbox-message" href="' + value.notification + '">' + value.message + '</a></li>');
-						} else {
-							$("#inbox-list").prepend('<li><a href="' + value._id + '" class="remove-from-inbox"><span class="glyphicon glyphicon-remove"></span></a><a class="open-inbox-message" href="' + value.notification + '"><strong>' + value.message + '</strong></a></li>');
-						}
-
-					});
-				}
-
-				$("#clear-inbox").click(function(){
-					instance.notificare("clearInbox", function(msg){
-						instance.notificare("fetchInbox", function(inboxItems){
-
-							refreshInbox(inboxItems);
-
-						}, function(error){
-							console.log(error);
-						});
-					}, function(error){
-						console.log(error);
-					});
-				}.bind(this));
-
-
-				$(document).on('click', '.open-inbox-message', function (){
-					instance.notificare("openInboxItem", {notification: $(this).attr('href')});
-
-					setTimeout(function(){
-						instance.notificare("fetchInbox", function(inboxItems){
-
-							refreshInbox(inboxItems);
-
-						}, function(error){
-							console.log(error);
-						});
-					}, 1000);
-
-					return false;
-				});
-
-
-				$(document).on('click', '.remove-from-inbox', function (){
-
-					instance.notificare("removeFromInbox", {_id: $(this).attr('href')}, function(msg){
-
-						instance.notificare("fetchInbox", function(inboxItems){
-
-							refreshInbox(inboxItems);
-
-						}, function(error){
-							console.log(error);
-						});
-
-					}, function(error){
-						console.log(error);
-					});
-
-					return false;
-				});
-
-
-
-				$(document).on('click', '#enable-notifications', function (){
-
-					instance.notificare("registerForNotifications");
-
-					return false;
-				});
-
-				$(document).on('click', '#disable-notifications', function (){
-
-					instance.notificare("unregisterDevice", function(msg){
-						$('#is-registered').hide();
-						$('#enable-notifications').show();
-						$('#disable-notifications').hide();
-					}, function(errors){
-
-					});
-
-					return false;
-				});
-
-			});
-		</script>
+		<script src="/resources/js/implementation.js"></script>
 	</body>
 </html>

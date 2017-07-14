@@ -1,5 +1,5 @@
 /*
- *  Notificare JS for jQuery - v1.9.0
+ *  Notificare JS for jQuery - v1.9.4
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
@@ -14,8 +14,6 @@
         defaults = {
             sdkVersion: '1.9.4',
             fullHost: window.location.protocol + '//' +  window.location.host,
-            //wssUrl: "wss://websocket.notifica.re",
-            protocols: ['notificare-push'],
             daysToExpire: '30',
             clientInfo: new UAParser(),
             userId: null,
@@ -39,13 +37,11 @@
             this.placeholder.addClass('notificare');
             this.uniqueId = this._getUniqueID();
             this.sessionDate = new Date();
-            this.reconnectTimeout = 0;
-            this.minReconnectTimeout = 1000;
-            this.maxReconnectTimeout = 60000;
             this.allowedNotifications = false;
             this.safariPush = false;
             this.webPush = false;
             this.serviceWorkerRegistration = null;
+            this.navigatorWatchPosition = null;
 
             //Initial set of regions, location and badge
             if(typeof(Storage) !== "undefined") {
@@ -140,6 +136,21 @@
             }.bind(this));
         },
 
+        /**
+         * Query Navigator Permissions
+         * @param permission
+         * @param success
+         * @param error
+         */
+        queryNavigatorPermissions: function(permission, success, error){
+            navigator.permissions.query({name: permission}).then(function(result) {
+                if (result.state === 'granted') {
+                    success(result);
+                } else {
+                    error(result);
+                }
+            });
+        },
         /**
          * Register for Notifications, triggered by the developer
          */
@@ -634,31 +645,31 @@
             if (this._getCookie('uuid')) {
 
                 this.serviceWorkerRegistration.pushManager.getSubscription()
-                    .then(function(subscription) {
-                        if (subscription) {
-                            return subscription.unsubscribe();
-                        }
-                    })
-                    .catch(function(error) {
-                        this.log('Notificare: Error unsubscribing service worker registration', error);
+                .then(function(subscription) {
+                    if (subscription) {
+                        return subscription.unsubscribe();
+                    }
+                })
+                .catch(function(error) {
+                    this.log('Notificare: Error unsubscribing service worker registration', error);
+                }.bind(this))
+                .then(function() {
+                    $.ajax({
+                        type: "DELETE",
+                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                        }.bind(this)
+                    }).done(function( msg ) {
+                        this._setCookie("");
+                        localStorage.setItem("badge", 0);
+                        $(this.element).trigger("notificare:didUpdateBadge", 0);
+                        success(msg);
                     }.bind(this))
-                    .then(function() {
-                        $.ajax({
-                            type: "DELETE",
-                            url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
-                            beforeSend: function (xhr) {
-                                xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                            }.bind(this)
-                        }).done(function( msg ) {
-                            this._setCookie("");
-                            localStorage.setItem("badge", 0);
-                            $(this.element).trigger("notificare:didUpdateBadge", 0);
-                            success(msg);
-                        }.bind(this))
-                        .fail(function(  jqXHR, textStatus, errorThrown ) {
-                            errors("Notificare: Failed to delete a UUID");
-                        }.bind(this));
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to delete a UUID");
                     }.bind(this));
+                }.bind(this));
             }
 
         },
@@ -709,6 +720,12 @@
 
         },
 
+        /**
+         * Helper method to handle notifications
+         */
+        handleAction: function(notification, label){
+            this._handleActionClickOnWebPushNotification(notification, label);
+        },
         /**
          * Handle click of a WebPush Notification
          * @param notification
@@ -1267,89 +1284,6 @@
 
         },
 
-
-        /**
-         * Show notification
-         * @param msg
-         */
-        /*
-        showNotification: function (msg) {
-
-            if (msg && msg.notification && msg.notification.message) {
-                if ("Notification" in window) {
-
-                    var n;
-                    try {
-                        n = new Notification(
-                            this.applicationInfo.name,
-                            {
-                                'body': msg.notification.message,
-                                'tag': msg.notification._id,
-                                'icon': this.options.awsStorage + this.applicationInfo.websitePushConfig.icon
-                            }
-                        );
-                        // remove the notification from Notification Center when it is clicked
-                        n.onclick = function () {
-                            n.close();
-                            var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                            window.location.replace(url);
-                            this._onURLLocationChanged();
-
-                        }.bind(this);
-
-                    } catch (e) {
-
-                        //If native Notification is not possible use the window.confirm
-                        n = window.confirm(msg.notification.message);
-
-                        if (n == true) {
-                            var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                            window.location.replace(url);
-                            this._onURLLocationChanged();
-                        }
-
-                    }
-
-                } else if ("webkitNotifications" in window) {
-                    var n = window.webkitNotifications.createNotification(this.options.awsStorage + this.applicationInfo.websitePushConfig.icon, this.applicationInfo.name, msg.notification.message);
-                    n.show();
-                    n.onclick = function () {
-
-                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                        window.location.replace(url);
-                        this._onURLLocationChanged();
-
-                    }.bind(this);
-
-                } else if ("mozNotification" in navigator) {
-
-                    var n = navigator.mozNotification.createNotification(this.applicationInfo.name, msg.notification.message, this.options.awsStorage + this.applicationInfo.websitePushConfig.icon);
-                    n.show();
-                    n.onclick = function () {
-
-                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                        window.location.replace(url);
-                        this._onURLLocationChanged();
-
-                    }.bind(this);
-
-                } else {
-
-                    //If native Notification is not possible use the window.confirm
-                    var n = window.confirm(msg.notification.message);
-
-                    if (n == true) {
-                        var url = this.applicationInfo.websitePushConfig.urlFormatString.replace("%@", msg.notification._id);
-                        window.location.replace(url);
-                        this._onURLLocationChanged();
-                    }
-                }
-            }
-
-            this._refreshBadge();
-
-        },
-        */
         /**
          * Load Notification on URLLocationChanged
          * @private
@@ -1412,11 +1346,11 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
-                    success(msg);
-                }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors('Notificare: Failed to register log');
-                }.bind(this));
+                success(msg);
+            }.bind(this))
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
+                errors('Notificare: Failed to register log');
+            }.bind(this));
         },
 
         /**
@@ -1441,11 +1375,11 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
-                    success(msg);
-                }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors('Notificare: Failed to register custom event');
-                }.bind(this));
+                success(msg);
+            }.bind(this))
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
+                errors('Notificare: Failed to register custom event');
+            }.bind(this));
         },
         /**
          * Get tags for a device
@@ -1461,11 +1395,11 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
-                        success(msg.tags);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to get tags for device");
-                    }.bind(this));
+                    success(msg.tags);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to get tags for device");
+                }.bind(this));
             } else {
                 errors('Notificare: Calling get tags before having a deviceId');
             }
@@ -1490,11 +1424,11 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 }).done(function( msg ) {
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to add tags to device");
-                    }.bind(this));
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to add tags to device");
+                }.bind(this));
             } else {
                 errors("Notificare: Calling addTags before registering a deviceId");
             }
@@ -1520,11 +1454,11 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 }).done(function( msg ) {
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors(null);
-                    }.bind(this));
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors(null);
+                }.bind(this));
             } else {
                 errors("Notificare: Calling removeTag before registering a deviceId");
             }
@@ -1547,11 +1481,11 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 }).done(function( msg ) {
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Failed to clear device tags.");
-                    }.bind(this));
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Failed to clear device tags.");
+                }.bind(this));
             } else {
                 errors("Notificare: Calling clearTags before registering a deviceId");
             }
@@ -1572,11 +1506,11 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
-                        success(msg.userData);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to get user data for device");
-                    }.bind(this));
+                    success(msg.userData);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to get user data for device");
+                }.bind(this));
             } else {
                 errors('Notificare: Calling fetch user data before having a deviceId');
             }
@@ -1599,11 +1533,11 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 }).done(function( msg ) {
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to update user data for device");
-                    }.bind(this));
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to update user data for device");
+                }.bind(this));
             } else {
                 errors("Notificare: Calling update user data before registering a deviceId");
             }
@@ -1623,11 +1557,11 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
-                        success(msg.dnd);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to get dnd for device");
-                    }.bind(this));
+                    success(msg.dnd);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to get dnd for device");
+                }.bind(this));
             } else {
                 errors('Notificare: Calling fetch dnd before having a deviceId');
             }
@@ -1639,10 +1573,10 @@
          * @param errors
          */
         updateDoNotDisturb: function (start, end, success, errors) {
+
             if (this._getCookie('uuid')) {
 
                 if (start && end) {
-
                     $.ajax({
                         type: "PUT",
                         url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/dnd',
@@ -1656,11 +1590,12 @@
                         contentType: "application/json; charset=utf-8",
                         dataType: "json"
                     }).done(function( msg ) {
-                            success(msg);
-                        }.bind(this))
-                        .fail(function(  jqXHR, textStatus, errorThrown ) {
-                            errors("Notificare: Failed to update dnd for device");
-                        }.bind(this));
+                        success(msg);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to update dnd for device");
+                    }.bind(this));
+
                 } else {
                     errors("Notificare: Calling update dnd without a start and end time");
                 }
@@ -1687,14 +1622,21 @@
                     contentType: "application/json; charset=utf-8",
                     dataType: "json"
                 }).done(function( msg ) {
-                        success(msg);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to clear dnd for device");
-                    }.bind(this));
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to clear dnd for device");
+                }.bind(this));
             } else {
                 errors("Notificare: Calling clear dnd before registering a deviceId");
             }
+        },
+
+        /**
+         * Helper method to check if location is allowed
+         */
+        isLocationAllowed: function(){
+            return localStorage.getItem("isLocationAllowed");
         },
         /**
          * Start Location Updates
@@ -1706,11 +1648,13 @@
                 if (this.applicationInfo.services && this.applicationInfo.services.locationServices) {
 
                     if (navigator.geolocation) {
-                        navigator.geolocation.watchPosition(function(position){
+                        this.navigatorWatchPosition = navigator.geolocation.watchPosition(function(position){
+
+                            localStorage.setItem("isLocationAllowed", 1);
 
                             var cachedPosition = JSON.parse(localStorage.getItem("position"));
 
-                            if(cachedPosition.latitude != position.coords.latitude || cachedPosition.longitude != position.coords.longitude){
+                            if(!cachedPosition || cachedPosition.latitude != position.coords.latitude || cachedPosition.longitude != position.coords.longitude){
 
                                 this._getDeviceCountry(position, function(data){
 
@@ -1742,6 +1686,9 @@
                             }
 
                         }.bind(this), function(error){
+
+                            localStorage.setItem("isLocationAllowed", 0);
+
                             switch(error.code) {
                                 case error.PERMISSION_DENIED:
                                     errors("Notificare: User denied the request for Geolocation");
@@ -1775,7 +1722,20 @@
         stopLocationUpdates: function(){
             if (this.applicationInfo.services && this.applicationInfo.services.locationServices) {
                 if (navigator.geolocation) {
-                    navigator.geolocation.clearWatch();
+                    navigator.geolocation.clearWatch(this.navigatorWatchPosition);
+                    localStorage.setItem("isLocationAllowed", 0);
+                    this.updateLocation({
+                        coords: {
+                            latitude: null,
+                            longitude: null
+                        }
+                    }, null, function(data){
+                        localStorage.setItem("position", null);
+                        this.log("Notificare: Location cleared successfully");
+                    }.bind(this), function(){
+                        this.log("Notificare: Failed to clear location");
+                    });
+
                 }
             } else {
                 this.log("Notificare: Your account does not support Location Services");
@@ -1804,22 +1764,22 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
-                    localStorage.setItem("position", JSON.stringify({
-                        accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
-                        altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
-                        altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
-                        heading: (!isNaN(position.coords.heading)) ? position.coords.heading : null,
-                        speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        country: country,
-                        timestamp: position.timestamp
-                    }));
-                    success(JSON.parse(localStorage.getItem("position")));
-                }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors(null);
-                }.bind(this));
+                localStorage.setItem("position", JSON.stringify({
+                    accuracy: (!isNaN(position.coords.accuracy)) ? position.coords.accuracy : null,
+                    altitude: (!isNaN(position.coords.altitude)) ? position.coords.altitude : null,
+                    altitudeAccuracy: (!isNaN(position.coords.altitudeAccuracy)) ? position.coords.altitudeAccuracy : null,
+                    heading: (!isNaN(position.coords.heading)) ? position.coords.heading : null,
+                    speed: (!isNaN(position.coords.speed)) ? position.coords.speed : null,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    country: country,
+                    timestamp: position.timestamp
+                }));
+                success(JSON.parse(localStorage.getItem("position")));
+            }.bind(this))
+            .fail(function(  jqXHR, textStatus, errorThrown ) {
+                errors(null);
+            }.bind(this));
 
         },
 
@@ -1837,11 +1797,11 @@
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
                 }).done(function( msg ) {
-                        success(msg.inboxItems);
-                    }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to get the inbox");
-                    }.bind(this));
+                    success(msg.inboxItems);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to get the inbox");
+                }.bind(this));
             } else {
                 errors('Notificare: Calling fetchInbox before having a deviceId');
             }
@@ -2218,6 +2178,55 @@
             .fail(function(  jqXHR, textStatus, errorThrown ) {
                 errors('Notificare: Failed to trigger region');
             }.bind(this));
+
+        },
+
+        /**
+         * Perform Cloud API requests
+         * @param type
+         * @param region
+         * @param success
+         * @param errors
+         * @private
+         */
+        performCloudAPIRequest: function (verb, path, params, success, errors) {
+
+            if (verb === 'GET') {
+
+                $.ajax({
+                    type: 'GET',
+                    url: this.options.apiUrl + '/' + path,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
+                    data: params
+                }).done(function (msg) {
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors(jqXHR, textStatus, errorThrown);
+                }.bind(this));
+
+            } else if (verb === 'POST' || verb === 'PUT') {
+
+                $.ajax({
+                    type: verb,
+                    url: this.options.apiUrl + '/' + type,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this),
+                    data: JSON.stringify(params),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json"
+                }).done(function (msg) {
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors(jqXHR, textStatus, errorThrown);
+                }.bind(this));
+
+            }
+
 
         }
     };
