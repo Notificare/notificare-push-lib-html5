@@ -214,120 +214,132 @@
 
                 } else if ('serviceWorker' in navigator &&
                     'showNotification' in ServiceWorkerRegistration.prototype &&
-                    'PushManager' in window &&
-                    isServiceWorkerCapable &&
-                    this.applicationInfo.websitePushConfig &&
-                    this.applicationInfo.websitePushConfig.gcmApiKey &&
-                    this.applicationInfo.websitePushConfig.vapid &&
-                    this.applicationInfo.websitePushConfig.vapid.publicKey &&
-                    this.options.serviceWorker &&
-                    this.options.serviceWorkerScope) {
+                    'PushManager' in window) {
 
-                    navigator.serviceWorker.register(this.options.serviceWorker, {
-                        scope: this.options.serviceWorkerScope
-                    }).then(function() {
+                    if (this.applicationInfo.websitePushConfig &&
+                        this.applicationInfo.websitePushConfig.gcmApiKey &&
+                        this.applicationInfo.websitePushConfig.vapid &&
+                        this.applicationInfo.websitePushConfig.vapid.publicKey &&
+                        this.options.serviceWorker &&
+                        this.options.serviceWorkerScope) {
 
-                        //Worker is ready let's handle messages from it
-                        navigator.serviceWorker.onmessage = function(msg){
 
-                            if (msg && msg.data) {
-                                var data = JSON.parse(msg.data);
-                                switch(data.cmd) {
-                                    case 'notificationclick':
-                                        this._handleClickOnWebPushNotification(data.message);
-                                        break;
-                                    case 'notificationreceive':
-                                        this._getNotification(data.message);
-                                        break;
-                                    case 'notificationreply':
-                                        this._handleActionClickOnWebPushNotification(data.message, data.action);
-                                        break;
-                                    case 'activate':
-                                        this._sendMessage({
-                                            action: "init",
-                                            options: this.options
-                                        });
-                                        break;
-                                    case 'pushsubscriptionchange':
-                                        //@TODO: register the device whenever this is triggered, this is not yet reliably supported by all browsers
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
+                        if (isServiceWorkerCapable) {
 
-                        }.bind(this);
+                            navigator.serviceWorker.register(this.options.serviceWorker, {
+                                scope: this.options.serviceWorkerScope
+                            }).then(function() {
 
-                        navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+                                //Worker is ready let's handle messages from it
+                                navigator.serviceWorker.onmessage = function(msg){
 
-                            this.serviceWorkerRegistration = serviceWorkerRegistration;
-                            // Are Notifications supported in the service worker?
-                            serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
-                                // Enable any UI which subscribes / unsubscribes from
-                                // push messages.
-                                if (!subscription || !subscription.options || !subscription.options.applicationServerKey || this._arrayBufferToBase64Url(subscription.options.applicationServerKey) !== this.applicationInfo.websitePushConfig.vapid.publicKey) {
-                                    // subscribe for push notifications
-                                    var subscriptionOptions = {
-                                        name: 'push',
-                                        userVisibleOnly: true
-                                    };
-                                    if (this.applicationInfo.websitePushConfig.vapid.publicKey) {
-                                        subscriptionOptions.applicationServerKey = this._base64UrlToUint8Array(this.applicationInfo.websitePushConfig.vapid.publicKey);
-                                    }
-                                    serviceWorkerRegistration.pushManager.subscribe(subscriptionOptions).then(function(subscription) {
-                                        // The subscription was successful
-                                        this.allowedNotifications = true;
-                                        this.webPush = true;
-                                        // Send push keys along with event
-                                        $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
-
-                                        //It's the first time, let's create an install event
-                                        this.logEvent({
-                                            sessionID: this.uniqueId,
-                                            type: 're.notifica.event.application.Install'
-                                        },  function(data){
-
-                                        }, function(error){
-
-                                        });
-
-                                    }.bind(this)).catch(function(e) {
-                                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", e);
-                                        if (Notification.permission === 'denied') {
-                                            //Do nothing
-                                        } else {
-                                            setTimeout(function() {
-                                                this.registerForNotifications();
-                                            }.bind(this), 2000);
+                                    if (msg && msg.data) {
+                                        var data = JSON.parse(msg.data);
+                                        switch(data.cmd) {
+                                            case 'notificationclick':
+                                                this._handleClickOnWebPushNotification(data.message);
+                                                break;
+                                            case 'notificationreceive':
+                                                this._getNotification(data.message);
+                                                break;
+                                            case 'notificationreply':
+                                                this._handleActionClickOnWebPushNotification(data.message, data.action);
+                                                break;
+                                            case 'activate':
+                                                this._sendMessage({
+                                                    action: "init",
+                                                    options: this.options
+                                                });
+                                                break;
+                                            case 'pushsubscriptionchange':
+                                                //@TODO: register the device whenever this is triggered, this is not yet reliably supported by all browsers
+                                                break;
+                                            default:
+                                                break;
                                         }
+                                    }
+
+                                }.bind(this);
+
+                                navigator.serviceWorker.ready.then(function(serviceWorkerRegistration){
+
+                                    this.serviceWorkerRegistration = serviceWorkerRegistration;
+                                    // Are Notifications supported in the service worker?
+                                    serviceWorkerRegistration.pushManager.getSubscription().then(function(subscription) {
+                                        // Enable any UI which subscribes / unsubscribes from
+                                        // push messages.
+                                        if (!subscription || !subscription.options || !subscription.options.applicationServerKey || this._arrayBufferToBase64Url(subscription.options.applicationServerKey) !== this.applicationInfo.websitePushConfig.vapid.publicKey) {
+                                            // subscribe for push notifications
+                                            var subscriptionOptions = {
+                                                name: 'push',
+                                                userVisibleOnly: true
+                                            };
+                                            if (this.applicationInfo.websitePushConfig.vapid.publicKey) {
+                                                subscriptionOptions.applicationServerKey = this._base64UrlToUint8Array(this.applicationInfo.websitePushConfig.vapid.publicKey);
+                                            }
+                                            serviceWorkerRegistration.pushManager.subscribe(subscriptionOptions).then(function(subscription) {
+                                                // The subscription was successful
+                                                this.allowedNotifications = true;
+                                                this.webPush = true;
+                                                // Send push keys along with event
+                                                $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
+
+                                                //It's the first time, let's create an install event
+                                                this.logEvent({
+                                                    sessionID: this.uniqueId,
+                                                    type: 're.notifica.event.application.Install'
+                                                },  function(data){
+
+                                                }, function(error){
+
+                                                });
+
+                                            }.bind(this)).catch(function(e) {
+                                                $(this.element).trigger("notificare:didFailToReceiveDeviceToken", e);
+                                                if (Notification.permission === 'denied') {
+                                                    //Do nothing
+                                                } else {
+                                                    setTimeout(function() {
+                                                        this.registerForNotifications();
+                                                    }.bind(this), 2000);
+                                                }
+                                            }.bind(this));
+                                        } else {
+                                            this.allowedNotifications = true;
+                                            this.webPush = true;
+                                            $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
+                                        }
+                                    }.bind(this)).catch(function(err) {
+                                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
+                                        //Let's try again
+                                        setTimeout(function() {
+                                            this.registerForNotifications();
+                                        }.bind(this), 2000);
                                     }.bind(this));
-                                } else {
-                                    this.allowedNotifications = true;
-                                    this.webPush = true;
-                                    $(this.element).trigger("notificare:didReceiveDeviceToken", this._getPushToken(subscription));
-                                }
+                                }.bind(this));
+
                             }.bind(this)).catch(function(err) {
                                 $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
-                                //Let's try again
                                 setTimeout(function() {
                                     this.registerForNotifications();
                                 }.bind(this), 2000);
                             }.bind(this));
-                        }.bind(this));
 
-                    }.bind(this)).catch(function(err) {
-                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
-                        setTimeout(function() {
-                            this.registerForNotifications();
-                        }.bind(this), 2000);
-                    }.bind(this));
+
+                        } else {
+                            this.log("Notificare: Service workers are only available over HTTPS or using localhost.");
+                        }
+
+                    } else {
+                        this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing a GCM/FCM Server Key, VAPID or incorrect path and scope to the service worker in config.json.");
+                    }
 
                 } else {
-                    this.log("Notificare: Your browser does not support web push");
+                    this.log("Notificare: Your browser does not support Service Workers nor Safari Website Push.");
                 }
 
             } else {
-                this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed");
+                this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing the App Icon and Allowed Domains.");
             }
 
         },
@@ -648,7 +660,28 @@
 
             if (this._getCookie('uuid')) {
 
-                this.serviceWorkerRegistration.pushManager.getSubscription()
+                if(this.safariPush){
+
+                    $.ajax({
+                        type: "DELETE",
+                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                        }.bind(this)
+                    }).done(function( msg ) {
+                        this._setCookie("");
+                        localStorage.setItem("badge", 0);
+                        $(this.element).trigger("notificare:didUpdateBadge", 0);
+                        success(msg);
+                    }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to delete a UUID");
+                    }.bind(this));
+
+
+                } else {
+
+                    this.serviceWorkerRegistration.pushManager.getSubscription()
                     .then(function(subscription) {
                         if (subscription) {
                             return subscription.unsubscribe();
@@ -670,10 +703,12 @@
                             $(this.element).trigger("notificare:didUpdateBadge", 0);
                             success(msg);
                         }.bind(this))
-                            .fail(function(  jqXHR, textStatus, errorThrown ) {
-                                errors("Notificare: Failed to delete a UUID");
-                            }.bind(this));
+                        .fail(function(  jqXHR, textStatus, errorThrown ) {
+                            errors("Notificare: Failed to delete a UUID");
+                        }.bind(this));
                     }.bind(this));
+
+                }
             }
 
         },
@@ -1885,9 +1920,9 @@
                     this._refreshBadge();
                     success(msg);
                 }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to remove item from inbox");
-                    }.bind(this));
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors("Notificare: Failed to remove item from inbox");
+                }.bind(this));
             } else {
                 errors('Notificare: Calling removeFromInbox before having a deviceId');
             }
@@ -1914,9 +1949,9 @@
                     localStorage.setItem("badge", msg.unread);
                     $(this.element).trigger("notificare:didUpdateBadge", msg.unread);
                 }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
-                    }.bind(this));
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
+                }.bind(this));
             } else {
                 errors('Notificare: Refreshing Badge before having a deviceId');
             }
