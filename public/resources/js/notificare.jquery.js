@@ -327,19 +327,19 @@
 
 
                         } else {
-                            this.log("Notificare: Service workers are only available over HTTPS or using localhost.");
+                            $(this.element).trigger("notificare:didFailToReceiveDeviceToken", "Notificare: Service workers are only available over HTTPS or using localhost.");
                         }
 
                     } else {
-                        this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing a GCM/FCM Server Key, VAPID or incorrect path and scope to the service worker in config.json.");
+                        $(this.element).trigger("notificare:didFailToReceiveDeviceToken", "Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing a GCM/FCM Server Key, VAPID or incorrect path and scope to the service worker in config.json.");
                     }
 
                 } else {
-                    this.log("Notificare: Your browser does not support Service Workers nor Safari Website Push.");
+                    $(this.element).trigger("notificare:didFailToReceiveDeviceToken", "Notificare: Your browser does not support Service Workers nor Safari Website Push.");
                 }
 
             } else {
-                this.log("Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing the App Icon and Allowed Domains.");
+                $(this.element).trigger("notificare:didFailToReceiveDeviceToken", "Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing the App Icon and Allowed Domains.");
             }
 
         },
