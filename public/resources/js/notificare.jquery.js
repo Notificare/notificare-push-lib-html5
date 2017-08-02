@@ -2234,7 +2234,7 @@
 
                 $.ajax({
                     type: 'GET',
-                    url: this.options.apiUrl + '/' + path,
+                    url: this.options.apiUrl + path,
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -2250,7 +2250,7 @@
 
                 $.ajax({
                     type: verb,
-                    url: this.options.apiUrl + '/' + type,
+                    url: this.options.apiUrl + path,
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -2263,6 +2263,21 @@
                     .fail(function(  jqXHR, textStatus, errorThrown ) {
                         errors(jqXHR, textStatus, errorThrown);
                     }.bind(this));
+
+            } else if (verb === 'DELETE') {
+
+                $.ajax({
+                    type: verb,
+                    url: this.options.apiUrl + path,
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function (msg) {
+                    success(msg);
+                }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors(jqXHR, textStatus, errorThrown);
+                }.bind(this));
 
             }
 

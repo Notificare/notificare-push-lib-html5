@@ -23,6 +23,13 @@ $(document).ready(function(){
             console.log(error);
         });
 
+        instance.notificare("performCloudAPIRequest", 'GET', '/region', null, function(data){
+
+            console.log(data);
+
+        }, function(error){
+            console.log(error);
+        });
         /*
          instance.notificare("fetchUserData", function(userData){
          console.log(userData);
