@@ -178,7 +178,9 @@ $(document).ready(function(){
         instance.notificare("log", 'didNotExecuteAction: ' + data);
     });
 
-
+    $("#myapp").bind("notificare:didReceiveSystemNotification", function(event, data) {
+        instance.notificare("log", 'didReceiveSystemNotification: ' + data);
+    });
     /**
      * Example methods
      */

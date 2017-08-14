@@ -245,6 +245,9 @@
                                             case 'notificationreply':
                                                 this._handleActionClickOnWebPushNotification(data.message, data.action);
                                                 break;
+                                            case 'system':
+                                                $(this.element).trigger("notificare:didReceiveSystemNotification", data);
+                                                break;
                                             case 'activate':
                                                 this._sendMessage({
                                                     action: "init",
