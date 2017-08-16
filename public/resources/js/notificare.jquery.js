@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.5',
+            sdkVersion: '1.9.6',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -1856,6 +1856,35 @@
                     }.bind(this)
                 }).done(function( msg ) {
                     success(msg.inboxItems);
+                }.bind(this))
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to get the inbox");
+                    }.bind(this));
+            } else {
+                errors('Notificare: Calling fetchInbox before having a deviceId');
+            }
+        },
+
+        /**
+         * Get the inbox for a specific device
+         * @param success
+         * @param errors
+         */
+        fetchInboxWithParameters: function (since, skip, limit, success, errors) {
+            if (this._getCookie('uuid')) {
+                $.ajax({
+                    type: "GET",
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
+                    data: {
+                        since: since,
+                        skip: skip,
+                        limit: limit
+                    },
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                    }.bind(this)
+                }).done(function( msg ) {
+                    success(msg);
                 }.bind(this))
                     .fail(function(  jqXHR, textStatus, errorThrown ) {
                         errors("Notificare: Failed to get the inbox");

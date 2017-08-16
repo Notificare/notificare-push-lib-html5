@@ -1,3 +1,9 @@
+1.9.6 - 17-08-2017 Joel Oliveira
+- Added since, skip and limit in fetchInbox method
+
+1.9.5 - 16-08-2017 Joel Oliveira
+- Added unsubscribe and subscribe again when application server key do not match
+
 1.9.4 - 11-07-2017 Joel Oliveira
 - Removed support for WebSockets
 - Added support for WebPush protocol in Chrome, Firefox and Opera
