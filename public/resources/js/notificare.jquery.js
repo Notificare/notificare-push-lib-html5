@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.4',
+            sdkVersion: '1.9.5',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -301,6 +301,22 @@
                                                 $(this.element).trigger("notificare:didFailToReceiveDeviceToken", e);
                                                 if (Notification.permission === 'denied') {
                                                     //Do nothing
+                                                } else if (this._arrayBufferToBase64Url(subscription.options.applicationServerKey) != this.applicationInfo.websitePushConfig.vapid.publicKey) {
+                                                    //Unsubscribe and subscribe again
+
+                                                    this.serviceWorkerRegistration.pushManager.getSubscription()
+                                                        .then(function(subscription) {
+                                                            if (subscription) {
+                                                                return subscription.unsubscribe();
+                                                            }
+                                                        })
+                                                        .catch(function(error) {
+                                                            this.log('Notificare: Error unsubscribing service worker registration', error);
+                                                        }.bind(this))
+                                                        .then(function() {
+                                                            $(this.element).trigger("notificare:didUnsubscribeForNotifications", "Notificare: Did unsubscribe and subscribe again due to mismatch in application server keys.");
+                                                            this.registerForNotifications();
+                                                        }.bind(this));
                                                 } else {
                                                     setTimeout(function() {
                                                         this.registerForNotifications();
@@ -677,39 +693,39 @@
                         $(this.element).trigger("notificare:didUpdateBadge", 0);
                         success(msg);
                     }.bind(this))
-                    .fail(function(  jqXHR, textStatus, errorThrown ) {
-                        errors("Notificare: Failed to delete a UUID");
-                    }.bind(this));
+                        .fail(function(  jqXHR, textStatus, errorThrown ) {
+                            errors("Notificare: Failed to delete a UUID");
+                        }.bind(this));
 
 
                 } else {
 
                     this.serviceWorkerRegistration.pushManager.getSubscription()
-                    .then(function(subscription) {
-                        if (subscription) {
-                            return subscription.unsubscribe();
-                        }
-                    })
-                    .catch(function(error) {
-                        this.log('Notificare: Error unsubscribing service worker registration', error);
-                    }.bind(this))
-                    .then(function() {
-                        $.ajax({
-                            type: "DELETE",
-                            url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
-                            beforeSend: function (xhr) {
-                                xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
-                            }.bind(this)
-                        }).done(function( msg ) {
-                            this._setCookie("");
-                            localStorage.setItem("badge", 0);
-                            $(this.element).trigger("notificare:didUpdateBadge", 0);
-                            success(msg);
+                        .then(function(subscription) {
+                            if (subscription) {
+                                return subscription.unsubscribe();
+                            }
+                        })
+                        .catch(function(error) {
+                            this.log('Notificare: Error unsubscribing service worker registration', error);
                         }.bind(this))
-                        .fail(function(  jqXHR, textStatus, errorThrown ) {
-                            errors("Notificare: Failed to delete a UUID");
+                        .then(function() {
+                            $.ajax({
+                                type: "DELETE",
+                                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                                beforeSend: function (xhr) {
+                                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                                }.bind(this)
+                            }).done(function( msg ) {
+                                this._setCookie("");
+                                localStorage.setItem("badge", 0);
+                                $(this.element).trigger("notificare:didUpdateBadge", 0);
+                                success(msg);
+                            }.bind(this))
+                                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                                    errors("Notificare: Failed to delete a UUID");
+                                }.bind(this));
                         }.bind(this));
-                    }.bind(this));
 
                 }
             }
@@ -1923,9 +1939,9 @@
                     this._refreshBadge();
                     success(msg);
                 }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors("Notificare: Failed to remove item from inbox");
-                }.bind(this));
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors("Notificare: Failed to remove item from inbox");
+                    }.bind(this));
             } else {
                 errors('Notificare: Calling removeFromInbox before having a deviceId');
             }
@@ -1952,9 +1968,9 @@
                     localStorage.setItem("badge", msg.unread);
                     $(this.element).trigger("notificare:didUpdateBadge", msg.unread);
                 }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
-                }.bind(this));
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        $(this.element).trigger("notificare:didUpdateBadge", localStorage.getItem("badge"));
+                    }.bind(this));
             } else {
                 errors('Notificare: Refreshing Badge before having a deviceId');
             }
@@ -2278,9 +2294,9 @@
                 }).done(function (msg) {
                     success(msg);
                 }.bind(this))
-                .fail(function(  jqXHR, textStatus, errorThrown ) {
-                    errors(jqXHR, textStatus, errorThrown);
-                }.bind(this));
+                    .fail(function(  jqXHR, textStatus, errorThrown ) {
+                        errors(jqXHR, textStatus, errorThrown);
+                    }.bind(this));
 
             }
 
