@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.6',
+            sdkVersion: '1.9.7',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -413,7 +413,7 @@
             var expiration = new Date();
             expiration.setDate( expiration.getDate() + this.options.daysToExpire );
             var value = escape( id ) + ( ( this.options.daysToExpire == null ) ? "" : "; expires=" + expiration.toUTCString());
-            document.cookie = 'uuid' + "=" + value;
+            document.cookie = 'uuid' + "=" + value + "; path=/";
         },
         /**
          *
