@@ -1,6 +1,14 @@
 Upgrade
 =======
 
+## Upgrade from 1.8.x to 1.9.0
+
+No significant changes to API
+
+## Upgrade from 1.7.x to 1.8.0
+
+No significant changes to API
+
 ## Upgrade from 1.6.x to 1.7.0
 
 ### Changes to options

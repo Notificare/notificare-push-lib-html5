@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.7',
+            sdkVersion: '1.9.8',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -58,6 +58,12 @@
 
                 if(!localStorage.getItem("badge")){
                     localStorage.setItem("badge", 0);
+                }
+
+                //In 1.9.8 we moving away from a cookie to local storage
+                if (this._getCookie('uuid') && this._getCookie('uuid').length > 0) {
+                    this._setDeviceToken(this._getCookie('uuid'));
+                    this._setCookie("");
                 }
             }
 
@@ -110,7 +116,7 @@
                     sessionID: this.uniqueId,
                     type: 're.notifica.event.application.Open',
                     userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid') || null
+                    deviceID: this._getDeviceToken() || null
                 }, function(data){
 
                 }, function(error){
@@ -128,7 +134,7 @@
                     sessionID: this.uniqueId,
                     type: 're.notifica.event.application.Close',
                     userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid') || null,
+                    deviceID: this._getDeviceToken() || null,
                     data: {
                         length: seconds
                     }
@@ -407,7 +413,7 @@
             return id;
         },
         /**
-         *
+         * Deprecated, use setDeviceToken
          */
         _setCookie: function ( id ) {
             var expiration = new Date();
@@ -416,7 +422,7 @@
             document.cookie = 'uuid' + "=" + value + "; path=/";
         },
         /**
-         *
+         * Deprecated, use getDeviceToken
          */
         _getCookie: function ( key ) {
             var cookie = document.cookie;
@@ -435,6 +441,19 @@
                 cookie = unescape( cookie.substring( cookieStart, cookieEnd ) );
             }
             return cookie;
+        },
+
+        /**
+         * Setting the Device Token
+         */
+        _setDeviceToken: function ( id ) {
+            localStorage.setItem("deviceToken", id);
+        },
+        /**
+         * Deprecated, use getDeviceToken
+         */
+        _getDeviceToken: function () {
+            return localStorage.getItem("deviceToken");
         },
 
         /**
@@ -646,7 +665,7 @@
                 }.bind(this),
                 data: JSON.stringify({
                     deviceID : uuid,
-                    oldDeviceID: (this._getCookie('uuid') && this._getCookie('uuid') != uuid) ? this._getCookie('uuid') : null,
+                    oldDeviceID: (this._getDeviceToken() && this._getDeviceToken() != uuid) ? this._getDeviceToken() : null,
                     keys: keys,
                     userID : (this.options.userId) ? this.options.userId : null,
                     userName : (this.options.username) ? this.options.username : null,
@@ -663,7 +682,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
             }).done(function( msg ) {
-                this._setCookie(uuid);
+                this._setDeviceToken(uuid);
                 this._refreshBadge();
                 $(this.element).trigger("notificare:didRegisterDevice", uuid);
             }.bind(this)).fail(function(  jqXHR, textStatus, errorThrown ) {
@@ -677,18 +696,18 @@
          */
         unregisterDevice: function (success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
 
                 if(this.safariPush){
 
                     $.ajax({
                         type: "DELETE",
-                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()),
                         beforeSend: function (xhr) {
                             xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                         }.bind(this)
                     }).done(function( msg ) {
-                        this._setCookie("");
+                        this._setDeviceToken("");
                         localStorage.setItem("badge", 0);
                         $(this.element).trigger("notificare:didUpdateBadge", 0);
                         success(msg);
@@ -712,12 +731,12 @@
                         .then(function() {
                             $.ajax({
                                 type: "DELETE",
-                                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()),
                                 beforeSend: function (xhr) {
                                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                                 }.bind(this)
                             }).done(function( msg ) {
-                                this._setCookie("");
+                                this._setDeviceToken("");
                                 localStorage.setItem("badge", 0);
                                 $(this.element).trigger("notificare:didUpdateBadge", 0);
                                 success(msg);
@@ -752,7 +771,7 @@
                     type: 're.notifica.event.notification.Receive',
                     notification: notification,
                     userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid')
+                    deviceID: this._getDeviceToken()
                 },  function(data){
 
                 }, function(error){
@@ -926,8 +945,8 @@
                 data.notificationID = msg.notification._id;
             }
 
-            if (this._getCookie('uuid')) {
-                data.deviceID = this._getCookie('uuid');
+            if (this._getDeviceToken()) {
+                data.deviceID = this._getDeviceToken();
             }
 
             if (this.options.userId) {
@@ -1316,7 +1335,7 @@
          * @returns {boolean}
          */
         isDeviceRegistered: function(){
-            return !!this._getCookie('uuid');
+            return !!this._getDeviceToken();
         },
         /**
          * Open Notification
@@ -1367,7 +1386,7 @@
                 type: 're.notifica.event.notification.Influenced',
                 notification: msg.notification._id,
                 userID: this.options.userId || null,
-                deviceID: this._getCookie('uuid')
+                deviceID: this._getDeviceToken()
             },  function(data){
 
             }, function(error){
@@ -1379,7 +1398,7 @@
                 type: 're.notifica.event.notification.Open',
                 notification: msg.notification._id,
                 userID: this.options.userId || null,
-                deviceID: this._getCookie('uuid')
+                deviceID: this._getDeviceToken()
             },  function(data){
                 this._refreshBadge();
             }.bind(this), function(error){
@@ -1428,7 +1447,7 @@
                     sessionID: this.uniqueId,
                     type: 're.notifica.event.custom.' + event,
                     userID: this.options.userId || null,
-                    deviceID: this._getCookie('uuid')
+                    deviceID: this._getDeviceToken()
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
@@ -1445,10 +1464,10 @@
          * @param errors
          */
         getTags: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/tags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/tags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1469,10 +1488,10 @@
          * @param errors
          */
         addTags: function (data, success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/addtags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/addtags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1499,10 +1518,10 @@
          */
         removeTag: function (data, success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/removetag',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/removetag',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1528,10 +1547,10 @@
          */
         clearTags: function (success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/cleartags',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/cleartags',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1556,10 +1575,10 @@
          * @param errors
          */
         fetchUserData: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/userdata',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/userdata',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1580,10 +1599,10 @@
          * @param errors
          */
         updateUserData: function (data, success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/userdata',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/userdata',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1607,10 +1626,10 @@
          * @param errors
          */
         fetchDoNotDisturb: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/dnd',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/dnd',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1632,12 +1651,12 @@
          */
         updateDoNotDisturb: function (start, end, success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
 
                 if (start && end) {
                     $.ajax({
                         type: "PUT",
-                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/dnd',
+                        url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/dnd',
                         beforeSend: function (xhr) {
                             xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                         }.bind(this),
@@ -1669,10 +1688,10 @@
          * @param errors
          */
         clearDoNotDisturb: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "PUT",
-                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')) + '/cleardnd',
+                    url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()) + '/cleardnd',
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this),
@@ -1701,7 +1720,7 @@
          */
         startLocationUpdates: function (success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
 
                 if (this.applicationInfo.services && this.applicationInfo.services.locationServices) {
 
@@ -1810,7 +1829,7 @@
 
             $.ajax({
                 type: "PUT",
-                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getCookie('uuid')),
+                url: this.options.apiUrl + '/device/' + encodeURIComponent(this._getDeviceToken()),
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                 }.bind(this),
@@ -1847,10 +1866,10 @@
          * @param errors
          */
         fetchInbox: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getDeviceToken()),
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1871,10 +1890,10 @@
          * @param errors
          */
         fetchInboxWithParameters: function (since, skip, limit, success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getDeviceToken()),
                     data: {
                         since: since,
                         skip: skip,
@@ -1917,7 +1936,7 @@
                 type: 're.notifica.event.notification.Open',
                 notification: inboxItem.notification,
                 userID: this.options.userId || null,
-                deviceID: this._getCookie('uuid')
+                deviceID: this._getDeviceToken()
             },  function(data){
                 this._refreshBadge();
                 success(data);
@@ -1932,10 +1951,10 @@
          * @param errors
          */
         clearInbox: function (success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "DELETE",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getDeviceToken()),
                     beforeSend: function (xhr) {
                         xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
                     }.bind(this)
@@ -1957,7 +1976,7 @@
          * @param errors
          */
         removeFromInbox: function (inboxItem, success, errors) {
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "DELETE",
                     url: this.options.apiUrl + '/notification/inbox/' + inboxItem._id,
@@ -1983,10 +2002,10 @@
          */
         _refreshBadge: function () {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "GET",
-                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getCookie('uuid')),
+                    url: this.options.apiUrl + '/notification/inbox/fordevice/' + encodeURIComponent(this._getDeviceToken()),
                     data:{
                         since: new Date().getTime()
                     },
@@ -2146,7 +2165,7 @@
          */
         reply: function (notification, label, data, success, errors) {
 
-            if (this._getCookie('uuid')) {
+            if (this._getDeviceToken()) {
                 $.ajax({
                     type: "POST",
                     url: this.options.apiUrl + '/reply',
@@ -2155,7 +2174,7 @@
                     }.bind(this),
                     data: JSON.stringify({
                         userID: this.options.userId,
-                        deviceID: this._getCookie('uuid'),
+                        deviceID: this._getDeviceToken(),
                         notification: notification,
                         data: data,
                         label: label
@@ -2255,7 +2274,7 @@
                 }.bind(this),
                 data: JSON.stringify({
                     region: region._id,
-                    deviceID: this._getCookie('uuid')
+                    deviceID: this._getDeviceToken()
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"
