@@ -1,10 +1,10 @@
 /*
- *  Notificare JS for jQuery - v1.9.4
+ *  Notificare JS for jQuery - v1.10.0
  *  jQuery Library for Notificare
  *  http://notifica.re
  *
  *  @author Joel Oliveira joel@notifica.re
- *  copyright 2016 Notificare
+ *  copyright 2017 Notificare
  */
 
 ;(function ( $, window, document, undefined ) {
@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.9.8',
+            sdkVersion: '1.10.0',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -1456,6 +1456,35 @@
             }.bind(this))
                 .fail(function(  jqXHR, textStatus, errorThrown ) {
                     errors('Notificare: Failed to register custom event');
+                }.bind(this));
+        },
+        /**
+         * Log a custom event with data
+         * @param event
+         * @param success
+         * @param errors
+         */
+        logCustomEventWithData: function (event, data, success, errors) {
+            $.ajax({
+                type: "POST",
+                url: this.options.apiUrl + '/event',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(this.options.appKey + ":" + this.options.appSecret));
+                }.bind(this),
+                data: JSON.stringify({
+                    sessionID: this.uniqueId,
+                    type: 're.notifica.event.custom.' + event,
+                    data: data,
+                    userID: this.options.userId || null,
+                    deviceID: this._getDeviceToken()
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"
+            }).done(function( msg ) {
+                success(msg);
+            }.bind(this))
+                .fail(function(  jqXHR, textStatus, errorThrown ) {
+                    errors('Notificare: Failed to register custom event with data');
                 }.bind(this));
         },
         /**
