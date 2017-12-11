@@ -77,6 +77,10 @@ $(document).ready(function(){
         instance.notificare("registerDevice",data);
     });
 
+    $("#myapp").bind("notificare:didFailToReceiveDeviceToken", function(event, data) {
+        instance.notificare("log", 'didFailToReceiveDeviceToken: ' + data);
+    });
+
     $("#myapp").bind("notificare:didRegisterDevice", function(event, data) {
         //Here it's safe to register tags
 
