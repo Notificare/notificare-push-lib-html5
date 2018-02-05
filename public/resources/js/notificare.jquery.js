@@ -12,7 +12,7 @@
     // Create the defaults once
     var pluginName = "notificare",
         defaults = {
-            sdkVersion: '1.10.0',
+            sdkVersion: '1.10.1',
             fullHost: window.location.protocol + '//' +  window.location.host,
             daysToExpire: '30',
             clientInfo: new UAParser(),
@@ -191,25 +191,30 @@
 
                     if (data.permission == 'default') {
 
-                        window.safari.pushNotification.requestPermission( this.options.websitePushUrl, this.applicationInfo.websitePushConfig.info.subject.UID, {applicationKey: this.options.appKey}, function(permission) {
+                        try {
+                            window.safari.pushNotification.requestPermission( this.options.websitePushUrl, this.applicationInfo.websitePushConfig.info.subject.UID, {applicationKey: this.options.appKey}, function(permission) {
 
-                            if(permission.deviceToken){
+                                if(permission.deviceToken){
 
-                                this.allowedNotifications = true;
-                                this.safariPush = true;
-                                $(this.element).trigger("notificare:didReceiveDeviceToken", permission.deviceToken);
-                                this.logEvent({
-                                    sessionID: this.uniqueId,
-                                    type: 're.notifica.event.application.Install'
-                                },  function(data){
+                                    this.allowedNotifications = true;
+                                    this.safariPush = true;
+                                    $(this.element).trigger("notificare:didReceiveDeviceToken", permission.deviceToken);
+                                    this.logEvent({
+                                        sessionID: this.uniqueId,
+                                        type: 're.notifica.event.application.Install'
+                                    },  function(data){
 
-                                }, function(error){
+                                    }, function(error){
 
-                                });
+                                    });
+                                }
 
-                            }
+                            }.bind(this));
 
-                        }.bind(this));
+                        } catch(err) {
+                            $(this.element).trigger("notificare:didFailToReceiveDeviceToken", err);
+                        }
+
                     } else if (data.permission == 'denied') {
                         $(this.element).trigger("notificare:didFailToReceiveDeviceToken", data);
                     } else if (data.permission == 'granted') {
@@ -367,6 +372,22 @@
                 $(this.element).trigger("notificare:didFailToReceiveDeviceToken", "Notificare: Please check your Website Push configurations in our dashboard before proceed. Missing the App Icon and Allowed Domains.");
             }
 
+        },
+
+        /**
+         * Helper method to check if user is registered
+         * @returns {boolean}
+         */
+        isDeviceRegistered: function(){
+            return !!this._getDeviceToken();
+        },
+
+        /**
+         * Helper method to check is WebPush & Safari Push is supported
+         * @returns {boolean}
+         */
+        isWebPushSupported: function() {
+            return (('safari' in window && 'pushNotification' in window.safari) || ('serviceWorker' in navigator && 'showNotification' in ServiceWorkerRegistration.prototype && 'PushManager' in window));
         },
         /**
          * Get/Set userId
@@ -1330,13 +1351,7 @@
             }.bind(this));
 
         },
-        /**
-         * Helper method to check if user is registered
-         * @returns {boolean}
-         */
-        isDeviceRegistered: function(){
-            return !!this._getDeviceToken();
-        },
+
         /**
          * Open Notification
          * @param notification
