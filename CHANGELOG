@@ -1,8 +1,10 @@
-1.10.1 - 05-02-2018 Joel Oliveira
+1.10.1 - 05-02-2018 Joel Oliveira & Joris Verbogt
 - Fixed issue with requesting permission when Safari is set to not allow websites to do so
+- Added helper method for checking if device is registered
+- Added didFailToReceiveDeviceToken listener to default implementation
 
 1.10.0 - 07-12-2017 Joel Oliveira
-- Added new logCustomEventWithData method
+- Added logCustomEventWithData method
 
 1.9.8 - 22-08-2017 Joel Oliveira
 - Moved away from cookie to local storage
