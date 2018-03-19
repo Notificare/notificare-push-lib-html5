@@ -1,65 +1,84 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-		<title>My App</title>
-		<meta name="viewport" content="width=device-width">
-		<link rel="apple-touch-icon-precomposed" sizes="144x144" href="apple-touch-icon.png">
-		<link rel="apple-touch-icon-precomposed" sizes="114x114" href="apple-touch-icon.png">
-		<link rel="apple-touch-icon-precomposed" sizes="72x72" href="apple-touch-icon.png">
-		<link rel="apple-touch-icon-precomposed" href="apple-touch-icon.png">
-		<link rel="shortcut icon" href="favicon.ico">
-		<link rel="manifest" href="/manifest.json" />
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Notificare</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="manifest" href="manifest.json" />
+    <link href="https://fonts.googleapis.com/css?family=Work+Sans" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/switchery/0.8.2/switchery.min.css" rel="stylesheet">
+    <link href="main.css" rel="stylesheet">
+    <link href="notificare.ui.css" rel="stylesheet">
+</head>
+<body>
+    <div id="demo">
+        <div class="navigation">
+            <div class="brand">
+                <img src="logo-notificare.svg">
+                <span>
+                HTML 5 SDK Demo
+            </span>
+            </div>
+            <div id="navBar">
+                <ul id="navBarList">
+                    <li class="active"><a rel="inbox" href="#">Inbox</a></li>
+                    <li><a rel="locations" href="#">Locations</a></li>
+                    <li><a rel="events" href="#">Events</a></li>
+                    <li><a rel="storage" href="#">Storage</a></li>
+                    <li><a rel="settings" href="#">Settings</a></li>
+                </ul>
+            </div>
+        </div>
+        <div id="applicationInfo"></div>
 
-		<!-- Latest compiled and minified CSS -->
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-		<link rel="stylesheet" href="/resources/styles/main.css">
-	</head>
-	<body>
-		<section id="myapp">
-			<div class="container">
-				<!-- Static navbar -->
-				<div class="navbar navbar-default" role="navigation">
-					<div class="container-fluid">
-						<div class="navbar-header">
-							<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-								<span class="sr-only">Toggle navigation</span>
-								<span class="icon-bar"></span>
-								<span class="icon-bar"></span>
-								<span class="icon-bar"></span>
-							</button>
-							<a class="navbar-brand" href="http://notifica.re">My Company name <span id="badge" class="badge"></span></a>
-						</div>
-					</div><!--/.container-fluid -->
-				</div>
-				<div class="jumbotron">
-					<h1>My Company</h1>
-					<p>Quickly bootstrap your HTML project</p>
-					<div id="visible-ui" style="display: none;">
-						<a id="disable-notifications" class="btn btn-lg btn-danger" href="#" role="button">Disable Notifications</a>
-						<a id="enable-notifications" class="btn btn-lg btn-success" href="#" role="button">Enable Notifications</a>
-					</div>
-				</div>
+        <div id="inboxArea" class="inbox">
+            <ul id="inboxItems">
 
-				<div class="is-registered">
-					<div class="row">
-						<div class="col-md-12">
-							<h2>Inbox</h2>
-							<div class="inbox">
-								<a id="clear-inbox" href="#">Clear Inbox</a>
-								<ul id="inbox-list"></ul>
-							</div>
-						</div>
-					</div>
-				</div>
+            </ul>
+        </div>
+        <div id="locationsArea">
+            <div id="map"></div>
+        </div>
+        <div id="storageArea">
+            <ul id="assetGroups">
 
-			</div> <!-- /container -->
-		</section>
-		<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
-		<script src="//cdnjs.cloudflare.com/ajax/libs/UAParser.js/0.7.9/ua-parser.min.js"></script>
-        <script src="/resources/js/notificare.jquery.min.js"></script>
-		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-		<script src="/resources/js/implementation.js"></script>
-	</body>
+            </ul>
+        </div>
+        <div id="settingsArea">
+            <div class="notifications">
+                <label>
+                    Allow Web Push Notifications
+                    <span>Toogle this option to enable or disable Web Push Notifications</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="pushToggle" />
+            </div>
+            <div class="location">
+                <label>
+                    Allow Location Services
+                    <span>Toogle this option to enable or disable Locations Services</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="locationToggle" />
+            </div>
+        </div>
+    </div>
+    <div id="notificationModal" class="modal">
+        <div id="notificationModalContent" class="modal-content">
+            <div id="notificationModalClose" class="close">&times;</div>
+            <div id="notificationModalContentPlaceholder" class="modal-content-placeholder"></div>
+            <div id="notificationModalActionsPlaceholder" class="modal-actions-placeholder"></div>
+        </div>
+    </div>
+    <!-- Optional Google Maps: used by this demo to show maps -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyADapK7Gnrb34RvfO-IwlhrMPlF-DF6dPM&libraries=geometry"></script>
+    <!-- Optional Switchery: used by this demo to make checkboxes iOS style toggles -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/switchery/0.8.2/switchery.min.js"></script>
+    <!-- Optional MomentJS: used by this demo to format dates -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.21.0/moment.min.js"></script>
+    <!-- Required Notificare: This is our HTML5 library -->
+    <script src="notificare.min.js"></script>
+    <!-- Optional Demo: used for the implementation of Notificare -->
+    <script src="main.js"></script>
+</body>
 </html>

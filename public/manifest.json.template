@@ -2,6 +2,6 @@
   "name": "Website Push",
   "short_name": "Website Push",
   "display": "standalone",
-  "gcm_sender_id": "YOUR SENDER ID",
+  "gcm_sender_id": "PUT_GCM_SENDER_ID",
   "gcm_user_visible_only": true
 }

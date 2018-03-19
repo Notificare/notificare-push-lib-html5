@@ -9,41 +9,56 @@
 
 self.addEventListener('push', function (event) {
 
-    var payload = event.data.json();
+    try {
 
-    if (payload.alert) {
-        if (payload.actions) {
-            var actions = [];
-            payload.actions.forEach(function (a) {
-                actions.push({
-                    title: a.label,
-                    action: a.label
+        var payload = event.data.json();
+
+        if (payload.alert) {
+            if (payload.actions) {
+                var actions = [];
+                payload.actions.forEach(function (a) {
+                    actions.push({
+                        title: a.label,
+                        action: a.label
+                    });
+                });
+            }
+
+            self.clients.matchAll().then(function(clients) {
+                clients.forEach(function(client) {
+                    client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: payload.id}));
                 });
             });
+
+            event.waitUntil(self.registration.showNotification(payload.application, {
+                body: payload.alert,
+                icon: payload.icon,
+                tag: payload.id,
+                actions: actions,
+                data: payload,
+                image: (payload.attachment) ? payload.attachment.uri : null, //Chrome on Android accepts lock screen media,
+                sound: (payload.sound) ? payload.sound : null //Chrome on Android accepts sound when receiving a notification, you need to provide the full path to your sound resources
+            }));
+        } else {
+
+            event.waitUntil(
+                self.clients.matchAll().then(function(clients) {
+                    clients.forEach(function(client) {
+                        client.postMessage(JSON.stringify({cmd: 'system', message: payload}));
+                    });
+                })
+            );
+
         }
 
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage(JSON.stringify({cmd: 'notificationreceive', message: payload.id}));
-            });
-        });
-
-        event.waitUntil(self.registration.showNotification(payload.application, {
-            body: payload.alert,
-            icon: payload.icon,
-            tag: payload.id,
-            actions: actions,
-            data: payload,
-            image: (payload.attachment) ? payload.attachment.uri : null, //Chrome on Android accepts lock screen media,
-            sound: (payload.sound) ? payload.sound : null //Chrome on Android accepts sound when receiving a notification, you need to provide the full path to your sound resources
-        }));
-    } else {
-
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage(JSON.stringify({cmd: 'system', message: payload}));
-            });
-        });
+    } catch(e) {
+        event.waitUntil(
+            self.clients.matchAll().then(function(clients) {
+                clients.forEach(function(client) {
+                    client.postMessage(JSON.stringify({cmd: 'push', message: payload}));
+                });
+            })
+        );
     }
 
 });

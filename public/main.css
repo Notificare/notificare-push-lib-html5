@@ -1,0 +1,324 @@
+body{
+    margin: 0;
+    padding: 0;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 16px;
+}
+
+#demo{
+    display: none;
+    padding: 70px 0 0 0;
+}
+
+.navigation{
+    position: fixed;
+    width: 100%;
+    height: 70px;
+    background: white;
+    top: 0;
+    -webkit-box-shadow: 0px 0px 15px 0px rgba(0,0,0,0.45);
+    -moz-box-shadow: 0px 0px 15px 0px rgba(0,0,0,0.45);
+    box-shadow: 0px 0px 15px 0px rgba(0,0,0,0.45);
+    z-index: 1;
+}
+
+.navigation .brand{
+    position: absolute;
+    width: 50%;
+    top: 12px;
+    left: 15px;
+}
+
+.navigation .brand span{
+    position: absolute;
+    display: block;
+    top: 28px;
+    left: 65px;
+    font-size: 12px;
+}
+
+.navigation .settings .notifications{
+    float: left;
+    width: 50%;
+}
+
+.navigation .settings .location{
+    float: right;
+    width: 50%;
+}
+
+.navigation .settings .notifications label{
+    display: block;
+}
+
+.navigation .settings .location label{
+    display: block;
+}
+
+#navBar{
+    position: absolute;
+    top: 20px;
+    right: 10px;
+}
+
+#navBar ul{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#navBar ul li{
+    float: left;
+    display: block;
+    padding: 10px 20px 5px 20px;
+}
+
+#navBar ul li.active{
+    border-bottom: 3px solid black;
+}
+
+#navBar ul li a, #navBar ul li a:focus, #navBar ul li a:active{
+    text-decoration: none;
+    color: black;
+}
+
+#applicationInfo{
+    position: relative;
+    padding: 20px;
+    background: #EAEAEA;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+#applicationInfo h1{
+    margin: 0px;
+}
+
+#applicationInfo .app-icon{
+    border-radius: 10px;
+    max-width: 60px;
+    display: block;
+    float: left;
+    margin-right: 10px;
+}
+
+#applicationInfo p{
+    margin: 0px;
+    font-size: 14px;
+}
+
+#applicationInfo .badge{
+    padding: 7px 10px 7px 10px;
+    border-radius: 100%;
+    color: #f9f9f6;
+    background-color: #e54142;
+    font-size: 14px;
+    font-weight: 400;
+    position: absolute;
+    top: 9px;
+    left: 64px;
+}
+
+.inbox{
+    border-bottom: 1px solid #bfbfbf;
+}
+.inbox #inboxItems{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.inbox #inboxItems li {
+    border-bottom: 1px solid #bfbfbf;
+    min-height: 120px;
+}
+
+.inbox #inboxItems li:last-child{
+    border-bottom: none;
+}
+
+.inbox #inboxItems li a, .inbox #inboxItems li a:hover, .inbox #inboxItems li a:focus{
+    display: block;
+    padding: 20px;
+    text-decoration: none;
+    color: black;
+}
+
+.inbox #inboxItems li a.read, .inbox #inboxItems li a.read:hover, .inbox #inboxItems li a.read:focus{
+    display: block;
+    padding: 20px;
+    text-decoration: none;
+    color: gray;
+}
+
+.inbox #inboxItems li a h2{
+    font-size: 18px;
+    font-weight: 400;
+    margin: 0;
+}
+
+.inbox #inboxItems li a h3{
+    font-size: 16px;
+    font-weight: 400;
+    margin: 0;
+}
+
+.inbox #inboxItems li a p{
+    font-size: 14px;
+    margin: 0;
+}
+
+.inbox #inboxItems li a span.date{
+    font-size: 12px;
+    margin: 0;
+}
+
+.inbox #inboxItems li a .attachment{
+    max-width: 150px;
+    max-height: 80px;
+    float: left;
+    margin-right: 20px;
+}
+
+#mapNotification{
+    margin: 10px 0 0 0;
+    height: 400px;
+}
+
+#map{
+    margin: 0 0 0 0;
+    height: 100vh;
+}
+
+#settingsArea .notifications{
+    position: relative;
+    padding: 20px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+#settingsArea .notifications span{
+    display: block;
+    font-size: 12px;
+}
+
+#settingsArea .notifications .switchery{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+#settingsArea .location{
+    position: relative;
+    padding: 20px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+#settingsArea .location span{
+    display: block;
+    font-size: 12px;
+}
+
+#settingsArea .location .switchery{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+#storageArea{
+    padding: 20px;
+}
+
+#storageArea #assetGroups{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#storageArea #assetGroups li{
+    display: block;
+    float: left;
+    width: 150px;
+    height: 150px;
+    border: 1px solid #bfbfbf;
+    margin: 0 10px 0 0;
+}
+
+#storageArea #assetGroups li img{
+    max-width: 150px;
+    max-height: 150px;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    overflow: hidden;
+}
+
+/* Modal Content/Box */
+.modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: 10% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 0px;
+    right: 10px;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.iframe-content{
+    width: 100%;
+    height: 400px;
+    border: none;
+    margin: 10px 0 0 0;
+}
+
+.notification-image{
+    max-width: 100%;
+    margin: 5px;
+}
+
+.modal-actions-placeholder{
+    padding-top: 20px;
+}
+
+.modal-actions-placeholder .action-button{
+    display: block;
+    margin: 12px 5px 0 0;
+    cursor: pointer;
+    margin-top: 5px !important;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: .6em;
+    border-radius: 3rem;
+    border: none;
+    padding: .45rem 1.5rem;
+    line-height: 1rem;
+    color: #f9f9f6;
+    background-color: #27b0a3;
+}

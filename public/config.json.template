@@ -1,0 +1,13 @@
+{
+  "appHost": "http://localhost:3000",
+  "appVersion": "1.0",
+  "appKey": "PUT_APP_KEY_HERE",
+  "appSecret": "PUT_APP_SECRET_HERE",
+  "serviceWorker": "sw.js",
+  "serviceWorkerScope": "./",
+  "geolocationOptions": {
+    "timeout": 60000,
+    "enableHighAccuracy": true,
+    "maximumAge": 100000
+  }
+}
