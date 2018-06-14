@@ -165,6 +165,16 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
 
+    notificare.didReceiveUnknownNotification = (notification) => {
+        console.log(notification);
+    }
+
+
+    notificare.didReceiveWorkerPush = (notification) => {
+        console.log(notification);
+    }
+
+
     notificare.didReceiveSystemNotification = (notification) => {
         console.log(notification);
     }
