@@ -189,6 +189,14 @@ body{
     height: 100vh;
 }
 
+
+#settingsArea .notifications-header{
+    margin: 0px;
+    padding: 20px 10px 20px 10px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+
 #settingsArea .notifications{
     position: relative;
     padding: 20px;
@@ -222,6 +230,63 @@ body{
     top: 20px;
     right: 20px;
 }
+
+#settingsArea .tags-header{
+    margin: 0px;
+    padding: 20px 10px 20px 10px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+
+#settingsArea .tags{
+    position: relative;
+    padding: 20px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+#settingsArea .tags span{
+    display: block;
+    font-size: 12px;
+}
+
+#settingsArea .tags .switchery{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+
+#settingsArea #dndTimes{
+    display: none;
+}
+
+#settingsArea .dnd{
+    position: relative;
+    padding: 20px;
+    border-bottom: 1px solid #bfbfbf;
+}
+
+#settingsArea .dnd span{
+    display: block;
+    font-size: 12px;
+}
+
+#settingsArea .dnd .switchery{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+#settingsArea .dnd .dnd-field{
+    position: absolute;
+    top: 11px;
+    right: 11px;
+    width: 150px;
+    height: 30px;
+    text-align: right;
+    font-size: 20px;
+}
+
 
 #storageArea{
     padding: 20px;

@@ -47,6 +47,7 @@
             </ul>
         </div>
         <div id="settingsArea">
+            <h3 class="notifications-header">Notifications</h3>
             <div class="notifications">
                 <label>
                     Allow Web Push Notifications
@@ -54,12 +55,56 @@
                 </label>
                 <input type="checkbox" class="js-switch" id="pushToggle" />
             </div>
+            <div class="dnd">
+                <label>
+                    Do Not Disturb
+                    <span>Toogle this option to enable or disable DND</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="dndToggle" />
+            </div>
+            <div id="dndTimes">
+                <div class="dnd">
+                    <label>
+                        Start
+                    </label>
+                    <input type="text" class="dnd-field" id="dndStart" value="01:00" />
+                </div>
+                <div class="dnd">
+                    <label>
+                        End
+                    </label>
+                    <input type="text" class="dnd-field" id="dndEnd" value="07:00" />
+                </div>
+            </div>
             <div class="location">
                 <label>
                     Allow Location Services
                     <span>Toogle this option to enable or disable Locations Services</span>
                 </label>
                 <input type="checkbox" class="js-switch" id="locationToggle" />
+            </div>
+
+            <h3 class="tags-header">Tags</h3>
+            <div class="tags">
+                <label>
+                    Press
+                    <span>Toogle this option to tag a device for this category</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="tagPressToggle" />
+            </div>
+            <div class="tags">
+                <label>
+                    Events
+                    <span>Toogle this option to tag a device for this category</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="tagEventsToggle" />
+            </div>
+            <div class="tags">
+                <label>
+                    Newsletter
+                    <span>Toogle this option to tag a device for this category</span>
+                </label>
+                <input type="checkbox" class="js-switch" id="tagNewsletterToggle" />
             </div>
         </div>
     </div>

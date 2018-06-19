@@ -4,6 +4,13 @@ document.addEventListener("DOMContentLoaded", function() {
         demo: document.getElementById("demo"),
         pushToggle: document.getElementById("pushToggle"),
         locationToggle: document.getElementById("locationToggle"),
+        tagPressToggle: document.getElementById("tagPressToggle"),
+        tagEventsToggle: document.getElementById("tagEventsToggle"),
+        tagNewsletterToggle: document.getElementById("tagNewsletterToggle"),
+        dndToggle: document.getElementById("dndToggle"),
+        dndTimes: document.getElementById("dndTimes"),
+        dndStart: document.getElementById("dndStart"),
+        dndEnd: document.getElementById("dndEnd"),
         applicationInfo: document.getElementById("applicationInfo"),
         inboxItems: document.getElementById("inboxItems"),
         notificationModal: document.getElementById("notificationModal"),
@@ -91,49 +98,23 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    var switchPush,switchLocation;
     var notificare = new Notificare();
 
     notificare.onReady = (application) => {
-
-        UI_CONSTANTS.applicationInfo.innerHTML = "<div id='appBadge' class='badge'>" + notificare.inboxManager.myBadge() + "</div><img class='app-icon' src='https://push.notifica.re/upload" + application.websitePushConfig.icon + "'><h1> " + application.name + "</h1><p>" + application.category + "</p>";
-        UI_CONSTANTS.demo.style.display = 'block';
-
-        UI_CONSTANTS.pushToggle.checked = notificare.isWebPushEnabled();
-        UI_CONSTANTS.locationToggle.checked = notificare.isLocationServicesEnabled();
-
-        switchPush = new Switchery(UI_CONSTANTS.pushToggle),
-            switchLocation = new Switchery(UI_CONSTANTS.locationToggle);
-
-        handleInbox();
 
         notificare.registerForNotifications();
 
         notificare.startLocationUpdates();
 
-        notificare.fetchUserData().then((fields) => {
-            console.log(fields);
-        });
+        handleAppIcon(application);
 
-        notificare.fetchDoNotDisturb().then((dnd) => {
-            console.log(dnd);
-        });
+        handleSettingsToggles();
 
-        UI_CONSTANTS.pushToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                notificare.registerForNotifications();
-            } else {
-                notificare.unregisterForNotifications();
-            }
-        });
+        handleInbox();
 
-        UI_CONSTANTS.locationToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                notificare.startLocationUpdates();
-            } else {
-                notificare.stopLocationUpdates();
-            }
-        });
+        handleDND();
+
+        handleTags();
 
     }
 
@@ -186,6 +167,40 @@ document.addEventListener("DOMContentLoaded", function() {
     notificare.shouldPerformActionWithURL = (url) => {
         window.location.href = url;
     }
+
+
+    function handleAppIcon(application){
+        UI_CONSTANTS.applicationInfo.innerHTML = "<div id='appBadge' class='badge'>" + notificare.inboxManager.myBadge() + "</div><img class='app-icon' src='https://push.notifica.re/upload" + application.websitePushConfig.icon + "'><h1> " + application.name + "</h1><p>" + application.category + "</p>";
+        UI_CONSTANTS.demo.style.display = 'block';
+    }
+
+    function handleSettingsToggles(){
+
+        var switchPush,switchLocation;
+
+        UI_CONSTANTS.pushToggle.checked = notificare.isWebPushEnabled();
+        UI_CONSTANTS.locationToggle.checked = notificare.isLocationServicesEnabled();
+
+        switchPush = new Switchery(UI_CONSTANTS.pushToggle),
+            switchLocation = new Switchery(UI_CONSTANTS.locationToggle);
+
+        UI_CONSTANTS.pushToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                notificare.registerForNotifications();
+            } else {
+                notificare.unregisterForNotifications();
+            }
+        });
+
+        UI_CONSTANTS.locationToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                notificare.startLocationUpdates();
+            } else {
+                notificare.stopLocationUpdates();
+            }
+        });
+    }
+
 
     function handleInbox(){
 
@@ -244,6 +259,88 @@ document.addEventListener("DOMContentLoaded", function() {
 
         }).catch((e) => {
             console.log(e);
+        });
+    }
+
+
+    function handleDND(){
+
+        notificare.fetchDoNotDisturb().then((dnd) => {
+
+            console.log(dnd);
+            if (dnd) {
+                UI_CONSTANTS.dndToggle.checked = true;
+                UI_CONSTANTS.dndTimes.style.display = 'block';
+            }
+
+            var switchDND = new Switchery(UI_CONSTANTS.dndToggle);
+
+            UI_CONSTANTS.dndToggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    notificare.updateDoNotDisturb(UI_CONSTANTS.dndStart.value, UI_CONSTANTS.dndEnd.value);
+                    UI_CONSTANTS.dndTimes.style.display = 'block';
+                } else {
+                    notificare.clearDoNotDisturb();
+                    UI_CONSTANTS.dndTimes.style.display = 'none';
+                }
+            });
+
+            UI_CONSTANTS.dndStart.addEventListener('change', () => {
+                notificare.updateDoNotDisturb(UI_CONSTANTS.dndStart.value, UI_CONSTANTS.dndEnd.value);
+            });
+
+            UI_CONSTANTS.dndEnd.addEventListener('change', () => {
+                notificare.updateDoNotDisturb(UI_CONSTANTS.dndStart.value, UI_CONSTANTS.dndEnd.value);
+            });
+
+        });
+    }
+
+    function handleTags(){
+
+        notificare.fetchTags().then((tags) => {
+            tags.forEach((tag) => {
+                if (tag === 'tag_press') {
+                    UI_CONSTANTS.tagPressToggle.checked = true;
+                }
+
+                if (tag === 'tag_events') {
+                    UI_CONSTANTS.tagEventsToggle.checked = true;
+                }
+
+                if (tag === 'tag_newsletter') {
+                    UI_CONSTANTS.tagNewsletterToggle.checked = true;
+                }
+            });
+
+            var switchTagPress = new Switchery(UI_CONSTANTS.tagPressToggle),
+                switchTagEvents = new Switchery(UI_CONSTANTS.tagEventsToggle),
+                switchTagNewsletter = new Switchery(UI_CONSTANTS.tagNewsletterToggle);
+
+        });
+
+        UI_CONSTANTS.tagPressToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                notificare.addTag('tag_press');
+            } else {
+                notificare.removeTag('tag_press');
+            }
+        });
+
+        UI_CONSTANTS.tagEventsToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                notificare.addTag('tag_events');
+            } else {
+                notificare.removeTag('tag_events');
+            }
+        });
+
+        UI_CONSTANTS.tagNewsletterToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                notificare.addTag('tag_newsletter');
+            } else {
+                notificare.removeTag('tag_newsletter');
+            }
         });
     }
 
