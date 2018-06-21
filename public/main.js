@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function handleInbox(){
 
-        notificare.inboxManager.fetchInbox().then((response) => {
+        notificare.inboxManager.fetchInbox(null, 0, 250).then((response) => {
 
             if (response.inboxItems && response.inboxItems.length > 0) {
 
@@ -267,7 +267,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
         notificare.fetchDoNotDisturb().then((dnd) => {
 
-            console.log(dnd);
             if (dnd) {
                 UI_CONSTANTS.dndToggle.checked = true;
                 UI_CONSTANTS.dndTimes.style.display = 'block';
