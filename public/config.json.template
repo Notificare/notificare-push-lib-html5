@@ -5,6 +5,7 @@
   "appSecret": "PUT_APP_SECRET_HERE",
   "serviceWorker": "sw.js",
   "serviceWorkerScope": "./",
+  "googleMapsAPIKey": "PUT_GMAPS_KEY_HERE",
   "geolocationOptions": {
     "timeout": 60000,
     "enableHighAccuracy": true,
