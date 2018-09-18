@@ -128,7 +128,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     notificare.didUpdateBadge = (badge) => {
         if (document.getElementById("appBadge")) {
-            document.getElementById("appBadge").innerHTML = badge;
+
+            if (badge && badge > 0) {
+                document.getElementById("appBadge").style.display = 'inline-block';
+                document.getElementById("appBadge").innerHTML = badge;
+            } else {
+                document.getElementById("appBadge").style.display = 'none';
+            }
+
         }
         handleInbox();
     }
