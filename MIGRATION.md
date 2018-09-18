@@ -63,7 +63,7 @@ https://docs.notifica.re/sdk/v2/html5/implementation/push/
 
 ## Location Services
 
-In this new version, locations services do not suffer any significant API change. Most of the changes to this functionality are under-the-hood and implementation for previous versions will work in this new versions.
+In this new version, locations services depend in Google's Geocoding API to retrieve the device's country . You will need to generate an API Key in https://developers.google.com/maps/documentation/geocoding/get-api-key. Once you've generated a API Key you must include it in the **config.json** file. Failing to do this will register devices without the country.
 
 For more information, please read the guides for this functionality located here:
 

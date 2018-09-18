@@ -98,13 +98,17 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    var notificare = new Notificare();
+    var notificare = new Notificare({
+        "useTestEnv": true,
+        "appHost": "http://localhost:3000",
+        "appVersion": "1.0",
+        "appKey": "2acc53dbce3ad5fad12945bd6d471a15ebd893798a10380b0a8592eeeebee5e9",
+        "appSecret": "6c695e48ca9a0dba7ff2567800731cb50687318f7c1aaa3e95a739993c471ae5"
+    });
 
     notificare.onReady = (application) => {
 
         notificare.registerForNotifications();
-
-        notificare.startLocationUpdates();
 
         handleAppIcon(application);
 
@@ -120,6 +124,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     notificare.didRegisterDevice = (device) => {
         UI_CONSTANTS.pushToggle.checked = notificare.isWebPushEnabled();
+        UI_CONSTANTS.locationToggle.checked = notificare.isLocationServicesEnabled();
+        if (notificare.isLocationServicesEnabled()) {
+            notificare.startLocationUpdates();
+        }
     }
 
     notificare.didFailToRegisterDevice = (e) => {
@@ -177,7 +185,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
     function handleAppIcon(application){
-        UI_CONSTANTS.applicationInfo.innerHTML = "<div id='appBadge' class='badge'>" + notificare.inboxManager.myBadge() + "</div><img class='app-icon' src='https://push.notifica.re/upload" + application.websitePushConfig.icon + "'><h1> " + application.name + "</h1><p>" + application.category + "</p>";
+        UI_CONSTANTS.applicationInfo.innerHTML = "<div id='appBadge' class='badge' style='display:none;'>" + notificare.inboxManager.myBadge() + "</div><img class='app-icon' src='https://push.notifica.re/upload" + application.websitePushConfig.icon + "'><h1> " + application.name + "</h1><p>" + application.category + "</p>";
         UI_CONSTANTS.demo.style.display = 'block';
     }
 
