@@ -98,13 +98,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    var notificare = new Notificare({
-        "useTestEnv": true,
-        "appHost": "http://localhost:3000",
-        "appVersion": "1.0",
-        "appKey": "2acc53dbce3ad5fad12945bd6d471a15ebd893798a10380b0a8592eeeebee5e9",
-        "appSecret": "6c695e48ca9a0dba7ff2567800731cb50687318f7c1aaa3e95a739993c471ae5"
-    });
+    var notificare = new Notificare();
+
+    notificare.launch();
 
     notificare.onReady = (application) => {
 
@@ -134,6 +130,10 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log('didFailToRegisterDevice', e);
     }
 
+    notificare.didFailToRegisterForNotifications = (e) => {
+        console.log('didFailToRegisterForNotifications', e);
+    }
+
     notificare.didUpdateBadge = (badge) => {
         if (document.getElementById("appBadge")) {
 
@@ -157,22 +157,22 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     notificare.didReceiveNotification = (notification) => {
-        console.log(notification);
+        console.log('didReceiveNotification', notification);
     }
 
 
     notificare.didReceiveUnknownNotification = (notification) => {
-        console.log(notification);
+        console.log('didReceiveUnknownNotification', notification);
     }
 
 
     notificare.didReceiveWorkerPush = (notification) => {
-        console.log(notification);
+        console.log('didReceiveWorkerPush', notification);
     }
 
 
     notificare.didReceiveSystemNotification = (notification) => {
-        console.log(notification);
+        console.log('didReceiveSystemNotification', notification);
     }
 
     notificare.didOpenNotification = (notification) => {
