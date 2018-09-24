@@ -450,19 +450,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 button.dataset.label = action.label;
                 button.appendChild(document.createTextNode(action.label));
                 UI_CONSTANTS.notificationModalActionsPlaceholder.appendChild(button);
+
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    notificare.handleAction(notification, this.dataset.label);
+                    if (document.querySelector('.iframe-content')) {
+                        document.querySelector('.iframe-content').srcdoc = "blank";
+                    }
+                    UI_CONSTANTS.notificationModal.style.display = 'none';
+                });
+
             });
 
-            document.querySelector('.action-button').addEventListener('click', function(e) {
-                e.preventDefault();
-
-                notificare.handleAction(notification, this.dataset.label);
-
-                if (document.querySelector('.iframe-content')) {
-                    document.querySelector('.iframe-content').srcdoc = "blank";
-                }
-
-                UI_CONSTANTS.notificationModal.style.display = 'none';
-            });
         }
 
         UI_CONSTANTS.notificationModalClose.addEventListener('click', function(e) {
