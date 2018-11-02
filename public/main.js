@@ -135,6 +135,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     notificare.didUpdateBadge = (badge) => {
+
         if (document.getElementById("appBadge")) {
 
             if (badge && badge > 0) {
