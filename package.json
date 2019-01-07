@@ -1,7 +1,7 @@
 {
   "name": "notificare-push-lib-html5",
   "description": "Notificare HTML 5 SDK Example App",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "private": true,
   "dependencies": {
     "express": "^4.8.0",
