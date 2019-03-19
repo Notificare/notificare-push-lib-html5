@@ -99,7 +99,7 @@ self.addEventListener('notificationclick', function (event) {
 
             if (clientList.length == 0) {
 
-                var url = "";
+                var url = event.notification.data.urlFormatString.replace("%@", event.notification.tag);
 
                 if (event.action) {
 
@@ -112,9 +112,6 @@ self.addEventListener('notificationclick', function (event) {
                         });
 
                     }, 2000);
-
-                } else {
-                    url = event.notification.data.urlFormatString.replace("%@", event.notification.tag);
 
                 }
 
