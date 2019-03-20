@@ -107,7 +107,7 @@ self.addEventListener('notificationclick', function (event) {
 
                         clients.matchAll().then(function(clients) {
                             clients.forEach(function(client) {
-                                client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action}));
+                                client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action, bg: true}));
                             });
                         });
 
@@ -119,27 +119,25 @@ self.addEventListener('notificationclick', function (event) {
 
             } else {
 
-                clientList.forEach(function(client) {
+                var client = clientList[0];
+                if (client  && 'focus' in client){
 
-                    if (client  && 'focus' in client){
+                    if (event.action) {
 
-                        if (event.action) {
-
-                            self.clients.matchAll().then(function(clients) {
-                                clients.forEach(function(client) {
-                                    client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action}));
-                                });
+                        self.clients.matchAll().then(function(clients) {
+                            clients.forEach(function(client) {
+                                client.postMessage(JSON.stringify({cmd: 'notificationreply', message: event.notification.tag, action: event.action, bg: false}));
                             });
+                        });
 
-                        } else {
+                    } else {
 
-                            client.postMessage(JSON.stringify({cmd: 'notificationclick', message: event.notification.tag}));
+                        client.postMessage(JSON.stringify({cmd: 'notificationclick', message: event.notification.tag}));
 
-                        }
-
-                        return client.focus();
                     }
-                });
+
+                    return client.focus();
+                }
 
             }
 
