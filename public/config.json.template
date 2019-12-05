@@ -3,6 +3,8 @@
   "appVersion": "1.0",
   "appKey": "PUT_APP_KEY_HERE",
   "appSecret": "PUT_APP_SECRET_HERE",
+  "ignoreNonWebPushDevices": false, /* Set to true to prevent registering non-webpush devices */
+  "allowOnlyWebPushSupportedDevices": false, /* Set to true to prevent this library from initializing in devices that do not support web push  */
   "serviceWorker": "sw.js",
   "serviceWorkerScope": "./", /* Leave this option out if you don't want a scope */
   "googleMapsAPIKey": "PUT_GMAPS_KEY_HERE",

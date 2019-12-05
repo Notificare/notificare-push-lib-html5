@@ -1,3 +1,12 @@
+2.1.0 - 06-12-2019 Joel Oliveira
+- Allow config.json to not be mandatory if initialized in the constructor
+- Re-register a non-push device after permission is denied (if allowed)
+- Added unregisterDevice method to completely remove device from Notificare
+- Added 2 new config properties to allow/disallow device that do not support web push and register temporary devices
+- Added auto on-boarding functionality
+- Added presentNotification to handle message UI
+- Added pre-flight check for browser capabilities
+
 2.0.9 - 20-03-2019 Joel Oliveira
 - Minor bug fixes
 

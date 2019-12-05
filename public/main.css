@@ -141,6 +141,7 @@ body{
 .inbox #inboxItems li a, .inbox #inboxItems li a:hover, .inbox #inboxItems li a:focus{
     display: block;
     padding: 20px;
+    min-height: 80px;
     text-decoration: none;
     color: black;
 }
@@ -388,4 +389,25 @@ body{
     line-height: 1rem;
     color: #f9f9f6;
     background-color: #27b0a3;
+}
+
+@media only screen and (max-width: 768px) {
+    #demo{
+        padding: 100px 0 0 0;
+    }
+    .navigation{
+        height: 100px;
+    }
+
+    #navBar{
+        top: 63px;
+        right: unset;
+    }
+    #navBar ul li {
+        padding: 10px 10px 5px 10px;
+    }
+
+    #navBar ul li a{
+        font-size: 14px;
+    }
 }

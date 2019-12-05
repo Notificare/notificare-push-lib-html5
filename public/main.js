@@ -100,11 +100,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
     var notificare = new Notificare();
 
-    notificare.launch();
+    notificare.launchWithAutoOnBoarding({
+        text: "Would you like to receive push notifications from our website?",
+        cancelText: "No",
+        acceptText: "Yes",
+        retryAfterInterval: 1, //in hours
+        showAfterDelay: 10 //in seconds
+    });
+
+    //notificare.launch();
 
     notificare.onReady = (application) => {
 
-        notificare.registerForNotifications();
+        //notificare.registerForNotifications(); // Use this only if you're not using launchWithAutoOnBoarding()
 
         handleAppIcon(application);
 
@@ -177,7 +185,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     notificare.didOpenNotification = (notification) => {
-        handleNotification(notification);
+        //handleNotification(notification); See this method to handle the UI yourself
+        notificare.presentNotification(notification); //Default UI for automatically handle all types of notifications
     }
 
     notificare.shouldPerformActionWithURL = (url) => {
@@ -255,7 +264,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     a.appendChild(message);
 
                     a.setAttribute("href", '#');
-                    a.setAttribute("rel", inboxItem.notification);
+                    //a.setAttribute("rel", inboxItem.notification);
                     if (inboxItem.opened) {
                         a.setAttribute("class", "read");
                     }
@@ -263,8 +272,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     a.onclick = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        notificare.inboxManager.openInboxItem({notification: this.getAttribute('rel')}).then((response) => {
-                           handleNotification(response);
+                        notificare.inboxManager.openInboxItem(inboxItem).then((response) => {
+                           //handleNotification(response);
+                            notificare.presentNotification(response);
                         });
                     };
 
@@ -273,8 +283,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             }
 
-        }).catch((e) => {
-            console.log(e);
+        }).catch(() => {
+            while (UI_CONSTANTS.inboxItems.firstChild) {
+                UI_CONSTANTS.inboxItems.removeChild(UI_CONSTANTS.inboxItems.firstChild);
+            }
         });
     }
 
@@ -308,6 +320,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 notificare.updateDoNotDisturb(UI_CONSTANTS.dndStart.value, UI_CONSTANTS.dndEnd.value);
             });
 
+        }).catch(() => {
+            UI_CONSTANTS.dndToggle.checked = false;
+            new Switchery(UI_CONSTANTS.dndToggle);
         });
     }
 
@@ -332,6 +347,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 switchTagEvents = new Switchery(UI_CONSTANTS.tagEventsToggle),
                 switchTagNewsletter = new Switchery(UI_CONSTANTS.tagNewsletterToggle);
 
+        }).catch(() => {
+            UI_CONSTANTS.tagPressToggle.checked = false;
+            UI_CONSTANTS.tagEventsToggle.checked = false;
+            UI_CONSTANTS.tagNewsletterToggle.checked = false;
+            var switchTagPress = new Switchery(UI_CONSTANTS.tagPressToggle),
+                switchTagEvents = new Switchery(UI_CONSTANTS.tagEventsToggle),
+                switchTagNewsletter = new Switchery(UI_CONSTANTS.tagNewsletterToggle);
         });
 
         UI_CONSTANTS.tagPressToggle.addEventListener('change', (e) => {
