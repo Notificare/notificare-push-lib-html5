@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     var notificare = new Notificare();
 
+    //This method request the permission and handles device registration using an on-boarding dialog
     notificare.launchWithAutoOnBoarding({
         text: "Would you like to receive push notifications from our website?",
         cancelText: "No",
@@ -108,11 +109,23 @@ document.addEventListener("DOMContentLoaded", function() {
         showAfterDelay: 10 //in seconds
     });
 
+    //If you would like to use the floating button mode instead, use this method
+    // notificare.launchWithFloatingButton({
+    //     verticalAlignment: "bottom", //possible values top, bottom
+    //     horizontalAlignment: "right", // possible values left, right
+    //     permissionTexts: {
+    //         default: "Click here to subscribe to remote notifications.",
+    //         granted: "You are now subscribed to remote notifications",
+    //         denied: "You've blocked notifications. Use the browser's settings to allow them."
+    //     }
+    // });
+
+    //If you would like to have a custom implementation use the following method instead
     //notificare.launch();
 
     notificare.onReady = (application) => {
 
-        //notificare.registerForNotifications(); // Use this only if you're not using launchWithAutoOnBoarding()
+        //notificare.registerForNotifications(); // Use this only if you're using the launch() method
 
         handleAppIcon(application);
 

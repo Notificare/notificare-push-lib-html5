@@ -1,4 +1,8 @@
-2.1.0 - 06-12-2019 Joel Oliveira
+2.1.0-beta.2 - 11-12-2019 Joel Oliveira
+- Added floating button launching mode
+- Removed mandatory GCM server key
+
+2.1.0-beta.1 - 06-12-2019 Joel Oliveira
 - Allow config.json to not be mandatory if initialized in the constructor
 - Re-register a non-push device after permission is denied (if allowed)
 - Added unregisterDevice method to completely remove device from Notificare
