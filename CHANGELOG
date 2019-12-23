@@ -1,3 +1,6 @@
+2.1.2 - 23-12-2019 Joel Oliveira
+- Added fallback strategy to handle URL Format String
+
 2.1.1 - 18-12-2019 Joel Oliveira
 - Added class namespace for reboot css styles
 
