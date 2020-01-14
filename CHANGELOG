@@ -1,3 +1,7 @@
+2.2.0 - 14-01-2020 Joel Oliveira
+- Added support for requireInteraction
+- Remove focus/blur events in favour of visibility API
+
 2.1.2 - 23-12-2019 Joel Oliveira
 - Added fallback strategy to handle URL Format String
 

@@ -4,7 +4,7 @@
  *
  *  @author Joel Oliveira joel@notifica.re
  *  @author Joris Verbogt joris@notifica.re
- *  copyright 2017 Notificare
+ *  copyright 2020 Notificare
  */
 
 self.addEventListener('push', function (event) {
@@ -38,7 +38,8 @@ self.addEventListener('push', function (event) {
                     tag: payload.id,
                     actions: actions,
                     data: payload,
-                    image: (payload.attachment) ? payload.attachment.uri : null, //Chrome on Android accepts lock screen media,
+                    requireInteraction: payload.requireInteraction,
+                    image: (payload.attachment && payload.attachment.uri) ? payload.attachment.uri : null, //Chrome on Android accepts lock screen media,
                     sound: (payload.sound) ? payload.sound : null //Chrome on Android accepts sound when receiving a notification, you need to provide the full path to your sound resources
                 }));
             } else {
