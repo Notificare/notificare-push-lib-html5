@@ -1,3 +1,7 @@
+2.2.1 - 15-01-2020 Joel Oliveira
+- Fixed issue with openInboxItem
+- Tweaks in message UI
+
 2.2.0 - 14-01-2020 Joel Oliveira
 - Added support for requireInteraction
 - Remove focus/blur events in favour of visibility API
