@@ -1,3 +1,10 @@
+2.3.0 - 17-06-2020 Joel Oliveira
+- Added unlaunch method
+- Added possibility to send notifications that are not shown in inbox
+- Added possibility to have inbox items that expired
+- Added check for previously registered sw before registering it again
+- Fixed issue that would add reboot styles more than once
+
 2.2.2 - 14-02-2020 Joel Oliveira
 - Updated gulp to v4 and refactored tasks, including publish to cdn
 - Added client-side reverse geocoding for country discovery
