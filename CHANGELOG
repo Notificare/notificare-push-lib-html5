@@ -1,3 +1,11 @@
+2.4.0 - 10-08-2020 Joel Oliveira
+- Added locationServicesAccuracyAuth and locationAccuracy when saving a location
+- Added support for multi-domain by using the urlFormatString coming from push payload
+- Added a different class name for notifications modal
+- Added override styles for on-boarding UI
+- Added markAllAsRead in inboxManager
+- Use title of a notification when present and fallback to app name in service worker
+
 2.3.0 - 17-06-2020 Joel Oliveira
 - Added unlaunch method
 - Added possibility to send notifications that are not shown in inbox
