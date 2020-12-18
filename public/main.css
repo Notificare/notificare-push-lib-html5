@@ -5,6 +5,16 @@ body{
     font-size: 16px;
 }
 
+a{
+    text-decoration: none;
+    border: 1px solid #000000;
+}
+
+a:hover{
+    text-decoration: none;
+    border: none;
+}
+
 #demo{
     display: none;
     padding: 70px 0 0 0;
@@ -80,6 +90,7 @@ body{
 #navBar ul li a, #navBar ul li a:focus, #navBar ul li a:active{
     text-decoration: none;
     color: black;
+    border: none;
 }
 
 #applicationInfo{
@@ -144,6 +155,7 @@ body{
     min-height: 80px;
     text-decoration: none;
     color: black;
+    border: none;
 }
 
 .inbox #inboxItems li a.read, .inbox #inboxItems li a.read:hover, .inbox #inboxItems li a.read:focus{

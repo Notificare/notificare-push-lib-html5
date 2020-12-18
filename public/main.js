@@ -25,7 +25,9 @@ document.addEventListener("DOMContentLoaded", function() {
         storageArea:  document.getElementById("storageArea"),
         settingsArea:  document.getElementById("settingsArea"),
         map: document.getElementById('map'),
-        assetGroups: document.getElementById("assetGroups")
+        assetGroups: document.getElementById("assetGroups"),
+        switcheryPushToggle: null,
+        switcheryLocationToggle: null
     };
 
     UI_CONSTANTS.inboxArea.style.display = 'block';
@@ -98,7 +100,24 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    var notificare = new Notificare();
+    var notificare = new Notificare(/*{
+        "useTestEnv": true,
+        "appHost": "http://localhost:3000",
+        "appVersion": "1.0",
+        "appKey": "0af1dca6fd38d6ba0da11210ba5b91baace92d3e605a12b494a65f6b67e394a9",
+        "appSecret": "85c6056709178c9b0550f23eb9768f96cb754af796e098269192779a6326bcb5",
+        "ignoreNonWebPushDevices": true,
+        "allowOnlyWebPushSupportedDevices": true,
+        "soundsDir": "/resources/sounds/",
+        "serviceWorker": "/sw.js",
+        //"serviceWorkerScope": "./",
+        "googleMapsAPIKey": "AIzaSyDDD4gXxhQLNrMV91wvnZPVWgTnUmOes5Y",
+        "geolocationOptions": {
+            "timeout": 60000,
+            "enableHighAccuracy": true,
+            "maximumAge": 100000
+        }
+    }*/);
 
     //This method request the permission and handles device registration using an on-boarding dialog
     notificare.launchWithAutoOnBoarding({
@@ -106,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
         cancelText: "No",
         acceptText: "Yes",
         retryAfterInterval: 1, //in hours
-        showAfterDelay: 10 //in seconds
+        showAfterDelay: 1 //in seconds
     });
 
     //If you would like to use the floating button mode instead, use this method
@@ -140,8 +159,21 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     notificare.didRegisterDevice = (device) => {
-        UI_CONSTANTS.pushToggle.checked = notificare.isWebPushEnabled();
-        UI_CONSTANTS.locationToggle.checked = notificare.isLocationServicesEnabled();
+
+        //work around to set switchery programatically
+        if (notificare.isWebPushEnabled() && !UI_CONSTANTS.pushToggle.checked) {
+            UI_CONSTANTS.pushToggle.parentNode.querySelectorAll(".switchery")[0].remove();
+            UI_CONSTANTS.pushToggle.checked = true;
+            UI_CONSTANTS.switcheryPushToggle = new Switchery(UI_CONSTANTS.pushToggle);
+        }
+
+        if (!notificare.isWebPushEnabled() && UI_CONSTANTS.pushToggle.checked) {
+            UI_CONSTANTS.pushToggle.parentNode.querySelectorAll(".switchery")[0].remove();
+            UI_CONSTANTS.pushToggle.checked = false;
+            UI_CONSTANTS.switcheryPushToggle = new Switchery(UI_CONSTANTS.pushToggle);
+        }
+        ////
+
         if (notificare.isLocationServicesEnabled()) {
             notificare.startLocationUpdates();
         }
@@ -199,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     notificare.didOpenNotification = (notification) => {
         //handleNotification(notification); See this method to handle the UI yourself
-        notificare.presentNotification(notification); //Default UI for automatically handle all types of notifications
+        notificare.presentNotification(notification); //Default UI to automatically handle all types of notifications
     }
 
     notificare.shouldPerformActionWithURL = (url) => {
@@ -214,13 +246,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function handleSettingsToggles(){
 
-        var switchPush,switchLocation;
-
         UI_CONSTANTS.pushToggle.checked = notificare.isWebPushEnabled();
         UI_CONSTANTS.locationToggle.checked = notificare.isLocationServicesEnabled();
 
-        switchPush = new Switchery(UI_CONSTANTS.pushToggle),
-            switchLocation = new Switchery(UI_CONSTANTS.locationToggle);
+        UI_CONSTANTS.switcheryPushToggle = new Switchery(UI_CONSTANTS.pushToggle),
+            UI_CONSTANTS.switcheryLocationToggle = new Switchery(UI_CONSTANTS.locationToggle);
 
         UI_CONSTANTS.pushToggle.addEventListener('change', (e) => {
             if (e.target.checked) {

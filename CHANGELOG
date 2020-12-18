@@ -1,3 +1,10 @@
+2.5.0 - 18-12-2020 Joel Oliveira
+- Added more style fixes for border on clickable elements
+- Added cleanup for non web push device when ignored in config
+- Added checks for inbox and auto badge in inbox methods
+- Use attachments as icon when present in service worker
+- Update dependencies
+
 2.4.0 - 10-08-2020 Joel Oliveira
 - Added locationServicesAccuracyAuth and locationAccuracy when saving a location
 - Added support for multi-domain by using the urlFormatString coming from push payload
