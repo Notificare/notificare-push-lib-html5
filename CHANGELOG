@@ -1,3 +1,6 @@
+2.5.1 - 15-01-2021 Joel Oliveira
+- Added attachment as icon only when available in Notification.prototype
+
 2.5.0 - 18-12-2020 Joel Oliveira
 - Added more style fixes for border on clickable elements
 - Added cleanup for non web push device when ignored in config
