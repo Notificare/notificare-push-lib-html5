@@ -1,3 +1,8 @@
+2.6.0 - 28-04-2021 Joel Oliveira
+- Added test device registration
+- Added renotify in service worker
+- Updated dependencies
+
 2.5.1 - 15-01-2021 Joel Oliveira
 - Added attachment as icon only when available in Notification.prototype
 
