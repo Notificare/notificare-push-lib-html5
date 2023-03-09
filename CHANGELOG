@@ -1,3 +1,6 @@
+2.7.2 - 09-03-2023 Joel Oliveira & Helder Pinhal
+- Optimizations for web push in iOS 16.4
+
 2.7.1 - 16-12-2021 Joel Oliveira
 - Added class names to Notificare UI elements
 
