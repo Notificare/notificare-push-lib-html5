@@ -1,3 +1,7 @@
+2.7.3 - 25-05-2023 Joel Oliveira & Helder Pinhal
+- Added missing action types
+- Optimizations in service worker readiness
+
 2.7.2 - 09-03-2023 Joel Oliveira & Helder Pinhal
 - Optimizations for web push in iOS 16.4
 
